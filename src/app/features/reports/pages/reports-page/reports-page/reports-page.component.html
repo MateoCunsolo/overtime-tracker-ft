@@ -1,6 +1,6 @@
 <section class="reports-grid">
   <article class="card">
-    <h2>Generar reporte PDF</h2>
+    <h2>Generar reporte</h2>
     <p>Puedes filtrar por mes o por rango personalizado (ej: del 22/02 al 22/03).</p>
 
     <form [formGroup]="form">
@@ -33,7 +33,19 @@
     </form>
 
     <div class="actions">
-      <button type="button" (click)="generatePdf()">Generar PDF</button>
+      <label for="exportFormat">Formato</label>
+      <select
+        id="exportFormat"
+        [value]="exportFormat"
+        (change)="exportFormat = $any($event.target).value"
+      >
+        <option value="pdf">PDF</option>
+        <option value="png">PNG (imagen)</option>
+        <option value="jpg">JPG (imagen)</option>
+      </select>
+      <button type="button" (click)="exportReport()">
+        Exportar {{ exportFormat.toUpperCase() }}
+      </button>
     </div>
 
     @if (errorMessage) {

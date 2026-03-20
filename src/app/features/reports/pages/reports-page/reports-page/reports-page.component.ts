@@ -24,6 +24,7 @@ export class ReportsPageComponent {
   entries: OvertimeEntry[] = [];
   filteredEntries: OvertimeEntry[] = [];
   errorMessage = '';
+  exportFormat: 'pdf' | 'png' | 'jpg' = 'pdf';
 
   readonly form = this.fb.group({
     modo: ['mes' as 'mes' | 'rango' | 'corte', [Validators.required]],
@@ -105,34 +106,71 @@ export class ReportsPageComponent {
     this.filteredEntries = this.sortEntriesByDateAsc(this.filteredEntries);
   }
 
-  async generatePdf(): Promise<void> {
-    this.applyFilter();
-    if (this.errorMessage) {
-      await AppSwal.fire({
-        title: 'No se pudo generar el reporte',
-        text: this.errorMessage,
-        icon: 'warning',
-        confirmButtonText: 'Entendido'
-      });
+  async exportReport(): Promise<void> {
+    if (this.exportFormat === 'pdf') {
+      await this.generatePdf();
       return;
     }
 
-    if (!this.filteredEntries.length) {
-      this.errorMessage = 'No hay horas extra para el periodo seleccionado.';
-      await AppSwal.fire({
-        title: 'Sin datos',
-        text: this.errorMessage,
-        icon: 'info',
-        confirmButtonText: 'Entendido'
-      });
-      return;
-    }
+    await this.generateImage(this.exportFormat === 'png' ? 'png' : 'jpeg');
+  }
+
+  async generatePdf(): Promise<void> {
+    const canExport = await this.validateReportData();
+    if (!canExport) return;
 
     const reportLabel = this.getReportLabel();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
     doc.setFontSize(14);
     doc.text('Reporte de Horas Extras', 40, 40);
+
+    // Logo Norgreen arriba a la derecha (header).
+    const logoPngDataUrl = await (async (): Promise<string | null> => {
+      try {
+        const res = await fetch('https://www.norgreen.com/wp-content/uploads/2019/12/norgreen-head.svg', {
+          mode: 'cors'
+        });
+        if (!res.ok) return null;
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+          const img = new Image();
+          img.decoding = 'async';
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('No se pudo cargar el logo'));
+            img.src = objectUrl;
+          });
+
+          const canvas = document.createElement('canvas');
+          const baseW = 420;
+          const baseH = Math.round((baseW * 30) / 206.22);
+          canvas.width = baseW;
+          canvas.height = baseH;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
+          ctx.drawImage(img, 0, 0, baseW, baseH);
+          return canvas.toDataURL('image/png', 1);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      } catch {
+        return null;
+      }
+    })();
+
+    if (logoPngDataUrl) {
+      const pageW = doc.internal.pageSize.getWidth();
+      const logoW = 95;
+      const logoH = (logoW * 30) / 206.22;
+      const x = pageW - logoW - 40;
+      doc.addImage(logoPngDataUrl, 'PNG', x, 18, logoW, logoH);
+    }
+
     doc.setFontSize(10);
     const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
     doc.setFillColor(145, 255, 80);
@@ -179,6 +217,12 @@ export class ReportsPageComponent {
       }
     });
 
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.text('Herramienta desarollada por Mateo Cunsolo', 40, pageHeight - 20);
+    doc.setTextColor(0, 0, 0);
+
     const operatorName = `${this.profile?.apellido ?? 'operario'}-${this.profile?.nombre ?? ''}`
       .trim()
       .toLowerCase()
@@ -192,6 +236,210 @@ export class ReportsPageComponent {
       icon: 'success',
       confirmButtonText: 'Genial'
     });
+  }
+
+  private async generateImage(format: 'png' | 'jpeg'): Promise<void> {
+    const canExport = await this.validateReportData();
+    if (!canExport) return;
+
+    const reportLabel = this.getReportLabel();
+    const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
+    const totals = this.calculateHoursByRateType();
+    const rows = this.filteredEntries.length;
+    const canvasWidth = 1200;
+    const rowHeight = 34;
+    const baseHeight = 260;
+    const summaryHeight = 150;
+    const canvasHeight = baseHeight + rows * rowHeight + summaryHeight;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      await AppSwal.fire({
+        title: 'Error al exportar imagen',
+        text: 'No se pudo generar el archivo de imagen.',
+        icon: 'error',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Logo Norgreen arriba a la derecha.
+    const logoPngDataUrl = await (async (): Promise<string | null> => {
+      try {
+        const res = await fetch('https://www.norgreen.com/wp-content/uploads/2019/12/norgreen-head.svg', {
+          mode: 'cors'
+        });
+        if (!res.ok) return null;
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+          const img = new Image();
+          img.decoding = 'async';
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('No se pudo cargar el logo'));
+            img.src = objectUrl;
+          });
+
+          const canvas = document.createElement('canvas');
+          const baseW = 420;
+          const baseH = Math.round((baseW * 30) / 206.22);
+          canvas.width = baseW;
+          canvas.height = baseH;
+
+          const rctx = canvas.getContext('2d');
+          if (!rctx) return null;
+          rctx.drawImage(img, 0, 0, baseW, baseH);
+          return canvas.toDataURL('image/png', 1);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      } catch {
+        return null;
+      }
+    })();
+
+    if (logoPngDataUrl) {
+      const logoImg = new Image();
+      logoImg.decoding = 'async';
+      logoImg.src = logoPngDataUrl;
+      await new Promise<void>((resolve) => {
+        logoImg.onload = () => resolve();
+        logoImg.onerror = () => resolve();
+      });
+
+      const logoW = 200;
+      const logoH = (logoW * 30) / 206.22;
+      const x = canvasWidth - logoW - 30;
+      const y = 16;
+      ctx.drawImage(logoImg, x, y, logoW, logoH);
+    }
+
+    ctx.fillStyle = '#111827';
+    ctx.font = '700 32px Montserrat, sans-serif';
+    ctx.fillText('Reporte de Horas Extras', 45, 60);
+
+    ctx.fillStyle = '#91ff50';
+    ctx.fillRect(40, 78, 560, 36);
+    ctx.fillStyle = '#142314';
+    ctx.font = '600 22px Montserrat, sans-serif';
+    ctx.fillText(operatorLine, 50, 103);
+
+    ctx.fillStyle = '#111827';
+    ctx.font = '500 18px Montserrat, sans-serif';
+    ctx.fillText(`Categoria: ${this.profile?.categoria ?? '-'}`, 45, 138);
+    ctx.fillText(`Periodo: ${reportLabel}`, 45, 166);
+    ctx.fillText(`Registros: ${this.filteredEntries.length}`, 45, 194);
+
+    const tableTop = 220;
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(40, tableTop, 1120, 36);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 16px Montserrat, sans-serif';
+    ctx.fillText('FECHA', 55, tableTop + 24);
+    ctx.fillText('PORCENTAJE DE PAGO', 300, tableTop + 24);
+    ctx.fillText('HORAS', 1080, tableTop + 24);
+
+    this.filteredEntries.forEach((entry, index) => {
+      const y = tableTop + 36 + rowHeight * index;
+      ctx.fillStyle = index % 2 === 0 ? '#f8fafc' : '#ffffff';
+      ctx.fillRect(40, y, 1120, rowHeight);
+      ctx.fillStyle = '#111827';
+      ctx.font = '500 15px Montserrat, sans-serif';
+      ctx.fillText(entry.fecha, 55, y + 22);
+      ctx.fillText(this.getDayTypeLabel(entry), 300, y + 22);
+      ctx.textAlign = 'right';
+      ctx.fillText(entry.horasExtra.toFixed(2), 1140, y + 22);
+      ctx.textAlign = 'left';
+    });
+
+    const summaryTop = tableTop + 36 + rowHeight * rows + 24;
+    ctx.fillStyle = '#6b7280';
+    ctx.fillRect(40, summaryTop, 1120, 36);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 16px Montserrat, sans-serif';
+    ctx.fillText('RESUMEN', 55, summaryTop + 24);
+    ctx.textAlign = 'right';
+    ctx.fillText('HORAS', 1140, summaryTop + 24);
+    ctx.textAlign = 'left';
+
+    const summaryRows = [
+      ['TOTAL HORAS TRABAJADAS AL 50%', totals.weekday.toFixed(2)],
+      ['TOTAL HORAS TRABAJADAS AL 100%', totals.weekend.toFixed(2)],
+      ['TOTAL HORAS TRABAJADAS FERIADOS', totals.holiday.toFixed(2)]
+    ];
+
+    summaryRows.forEach((row, index) => {
+      const y = summaryTop + 36 + rowHeight * index;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(40, y, 1120, rowHeight);
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.strokeRect(40, y, 1120, rowHeight);
+      ctx.fillStyle = '#111827';
+      ctx.font = '500 15px Montserrat, sans-serif';
+      ctx.fillText(row[0], 55, y + 22);
+      ctx.textAlign = 'right';
+      ctx.fillText(row[1], 1140, y + 22);
+      ctx.textAlign = 'left';
+    });
+
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '500 14px Montserrat, sans-serif';
+    ctx.fillText('Herramienta desarollada por Mateo Cunsolo', 45, canvasHeight - 24);
+
+    const operatorName = `${this.profile?.apellido ?? 'operario'}-${this.profile?.nombre ?? ''}`
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+    const extension = format === 'png' ? 'png' : 'jpg';
+    const fileName = `reporte-horas-${operatorName}-${reportLabel.replace(/\s+/g, '-').toLowerCase()}.${extension}`;
+    const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+    const dataUrl = canvas.toDataURL(mimeType, 0.95);
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = fileName;
+    link.click();
+
+    await AppSwal.fire({
+      title: 'Imagen generada',
+      text: `Archivo: ${fileName}`,
+      icon: 'success',
+      confirmButtonText: 'Genial'
+    });
+  }
+
+  private async validateReportData(): Promise<boolean> {
+    this.applyFilter();
+    if (this.errorMessage) {
+      await AppSwal.fire({
+        title: 'No se pudo generar el reporte',
+        text: this.errorMessage,
+        icon: 'warning',
+        confirmButtonText: 'Entendido'
+      });
+      return false;
+    }
+
+    if (!this.filteredEntries.length) {
+      this.errorMessage = 'No hay horas extra para el periodo seleccionado.';
+      await AppSwal.fire({
+        title: 'Sin datos',
+        text: this.errorMessage,
+        icon: 'info',
+        confirmButtonText: 'Entendido'
+      });
+      return false;
+    }
+
+    return true;
   }
 
   private getCurrentMonthValue(): string {

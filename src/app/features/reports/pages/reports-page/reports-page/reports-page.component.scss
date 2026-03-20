@@ -40,6 +40,16 @@ input[type='date'] {
 
 .actions {
   margin-top: var(--ng-space-4);
+  display: grid;
+  gap: 0.55rem;
+  max-width: 260px;
+}
+
+select {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-sm);
+  padding: 0.62rem 0.75rem;
+  background: #fff;
 }
 
 button {

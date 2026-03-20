@@ -17,6 +17,11 @@
   gap: var(--ng-space-3);
 }
 
+.brand-link {
+  text-decoration: none;
+  color: inherit;
+}
+
 h1 {
   margin: 0;
   font-size: 1.08rem;
