@@ -33,18 +33,8 @@
     </form>
 
     <div class="actions">
-      <label for="exportFormat">Formato</label>
-      <select
-        id="exportFormat"
-        [value]="exportFormat"
-        (change)="exportFormat = $any($event.target).value"
-      >
-        <option value="pdf">PDF</option>
-        <option value="png">PNG (imagen)</option>
-        <option value="jpg">JPG (imagen)</option>
-      </select>
       <button type="button" (click)="exportReport()">
-        Exportar {{ exportFormat.toUpperCase() }}
+        Exportar reporte
       </button>
     </div>
 

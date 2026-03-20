@@ -7,6 +7,7 @@ export const AppSwal = Swal.mixin({
     title: 'swal-title',
     htmlContainer: 'swal-content',
     confirmButton: 'swal-btn swal-btn-confirm',
+    denyButton: 'swal-btn swal-btn-deny',
     cancelButton: 'swal-btn swal-btn-cancel'
   }
 });

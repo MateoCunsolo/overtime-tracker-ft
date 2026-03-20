@@ -24,7 +24,6 @@ export class ReportsPageComponent {
   entries: OvertimeEntry[] = [];
   filteredEntries: OvertimeEntry[] = [];
   errorMessage = '';
-  exportFormat: 'pdf' | 'png' | 'jpg' = 'pdf';
 
   readonly form = this.fb.group({
     modo: ['mes' as 'mes' | 'rango' | 'corte', [Validators.required]],
@@ -107,12 +106,25 @@ export class ReportsPageComponent {
   }
 
   async exportReport(): Promise<void> {
-    if (this.exportFormat === 'pdf') {
+    const { isConfirmed, isDenied } = await AppSwal.fire({
+      title: 'Elegir formato de exportacion',
+      text: 'Selecciona en que formato quieres exportar el reporte.',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'PDF',
+      denyButtonText: 'Imagen',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (isConfirmed) {
       await this.generatePdf();
       return;
     }
 
-    await this.generateImage(this.exportFormat === 'png' ? 'png' : 'jpeg');
+    if (isDenied) {
+      await this.generateImage('png');
+    }
   }
 
   async generatePdf(): Promise<void> {
@@ -125,43 +137,8 @@ export class ReportsPageComponent {
     doc.setFontSize(14);
     doc.text('Reporte de Horas Extras', 40, 40);
 
-    // Logo Norgreen arriba a la derecha (header).
-    const logoPngDataUrl = await (async (): Promise<string | null> => {
-      try {
-        const res = await fetch('https://www.norgreen.com/wp-content/uploads/2019/12/norgreen-head.svg', {
-          mode: 'cors'
-        });
-        if (!res.ok) return null;
-
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        try {
-          const img = new Image();
-          img.decoding = 'async';
-
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error('No se pudo cargar el logo'));
-            img.src = objectUrl;
-          });
-
-          const canvas = document.createElement('canvas');
-          const baseW = 420;
-          const baseH = Math.round((baseW * 30) / 206.22);
-          canvas.width = baseW;
-          canvas.height = baseH;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return null;
-          ctx.drawImage(img, 0, 0, baseW, baseH);
-          return canvas.toDataURL('image/png', 1);
-        } finally {
-          URL.revokeObjectURL(objectUrl);
-        }
-      } catch {
-        return null;
-      }
-    })();
+    // Logo local en esquina superior derecha.
+    const logoPngDataUrl = await this.getLocalLogoDataUrl();
 
     if (logoPngDataUrl) {
       const pageW = doc.internal.pageSize.getWidth();
@@ -220,7 +197,7 @@ export class ReportsPageComponent {
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFontSize(9);
     doc.setTextColor(107, 114, 128);
-    doc.text('Herramienta desarollada por Mateo Cunsolo', 40, pageHeight - 20);
+    doc.text('Herramienta desarrollada por Mateo Cunsolo', 40, pageHeight - 20);
     doc.setTextColor(0, 0, 0);
 
     const operatorName = `${this.profile?.apellido ?? 'operario'}-${this.profile?.nombre ?? ''}`
@@ -234,7 +211,7 @@ export class ReportsPageComponent {
       title: 'PDF generado',
       text: `Archivo: ${fileName}`,
       icon: 'success',
-      confirmButtonText: 'Genial'
+      confirmButtonText: 'Entendido'
     });
   }
 
@@ -249,8 +226,20 @@ export class ReportsPageComponent {
     const canvasWidth = 1200;
     const rowHeight = 34;
     const baseHeight = 260;
-    const summaryHeight = 150;
-    const canvasHeight = baseHeight + rows * rowHeight + summaryHeight;
+    const summaryRowsCount = 3;
+    const summaryTitleHeight = 36;
+    const summaryRowsHeight = rowHeight * summaryRowsCount;
+    const summarySpacingTop = 24;
+    const summarySpacingBottom = 28;
+    const footerPaddingBottom = 34;
+    const canvasHeight =
+      baseHeight +
+      rows * rowHeight +
+      summarySpacingTop +
+      summaryTitleHeight +
+      summaryRowsHeight +
+      summarySpacingBottom +
+      footerPaddingBottom;
     const canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -269,43 +258,8 @@ export class ReportsPageComponent {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // Logo Norgreen arriba a la derecha.
-    const logoPngDataUrl = await (async (): Promise<string | null> => {
-      try {
-        const res = await fetch('https://www.norgreen.com/wp-content/uploads/2019/12/norgreen-head.svg', {
-          mode: 'cors'
-        });
-        if (!res.ok) return null;
-
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        try {
-          const img = new Image();
-          img.decoding = 'async';
-
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error('No se pudo cargar el logo'));
-            img.src = objectUrl;
-          });
-
-          const canvas = document.createElement('canvas');
-          const baseW = 420;
-          const baseH = Math.round((baseW * 30) / 206.22);
-          canvas.width = baseW;
-          canvas.height = baseH;
-
-          const rctx = canvas.getContext('2d');
-          if (!rctx) return null;
-          rctx.drawImage(img, 0, 0, baseW, baseH);
-          return canvas.toDataURL('image/png', 1);
-        } finally {
-          URL.revokeObjectURL(objectUrl);
-        }
-      } catch {
-        return null;
-      }
-    })();
+    // Logo local en esquina superior derecha.
+    const logoPngDataUrl = await this.getLocalLogoDataUrl();
 
     if (logoPngDataUrl) {
       const logoImg = new Image();
@@ -361,7 +315,7 @@ export class ReportsPageComponent {
       ctx.textAlign = 'left';
     });
 
-    const summaryTop = tableTop + 36 + rowHeight * rows + 24;
+    const summaryTop = tableTop + 36 + rowHeight * rows + summarySpacingTop;
     ctx.fillStyle = '#6b7280';
     ctx.fillRect(40, summaryTop, 1120, 36);
     ctx.fillStyle = '#ffffff';
@@ -393,7 +347,8 @@ export class ReportsPageComponent {
 
     ctx.fillStyle = '#6b7280';
     ctx.font = '500 14px Montserrat, sans-serif';
-    ctx.fillText('Herramienta desarollada por Mateo Cunsolo', 45, canvasHeight - 24);
+    const footerY = summaryTop + summaryTitleHeight + summaryRowsHeight + summarySpacingBottom;
+    ctx.fillText('Herramienta desarrollada por Mateo Cunsolo', 45, footerY);
 
     const operatorName = `${this.profile?.apellido ?? 'operario'}-${this.profile?.nombre ?? ''}`
       .trim()
@@ -412,7 +367,7 @@ export class ReportsPageComponent {
       title: 'Imagen generada',
       text: `Archivo: ${fileName}`,
       icon: 'success',
-      confirmButtonText: 'Genial'
+      confirmButtonText: 'Entendido'
     });
   }
 
@@ -519,5 +474,22 @@ export class ReportsPageComponent {
 
   private sortEntriesByDateAsc(entries: OvertimeEntry[]): OvertimeEntry[] {
     return [...entries].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }
+
+  private async getLocalLogoDataUrl(): Promise<string | null> {
+    try {
+      const res = await fetch('/norgreen-head.png', { cache: 'force-cache' });
+      if (!res.ok) return null;
+
+      const blob = await res.blob();
+      return await new Promise<string | null>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
   }
 }

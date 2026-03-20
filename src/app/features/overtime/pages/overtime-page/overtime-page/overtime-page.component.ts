@@ -199,7 +199,11 @@ export class OvertimePageComponent {
       text: 'Esta accion no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Si, eliminar',
+      customClass: {
+        confirmButton: 'swal-btn swal-btn-danger',
+        cancelButton: 'swal-btn swal-btn-cancel'
+      },
+      confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
     });
 

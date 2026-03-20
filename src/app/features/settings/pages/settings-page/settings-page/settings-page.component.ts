@@ -81,7 +81,7 @@ export class SettingsPageComponent {
       title: 'Respaldo exportado',
       text: 'Se descargó el archivo de respaldo.',
       icon: 'success',
-      confirmButtonText: 'Ok'
+      confirmButtonText: 'Entendido'
     });
   }
 
@@ -124,7 +124,7 @@ export class SettingsPageComponent {
         title: 'Respaldo importado',
         text: 'Los datos fueron restaurados correctamente.',
         icon: 'success',
-        confirmButtonText: 'Reiniciar vista'
+        confirmButtonText: 'Entendido'
       });
 
       window.location.reload();
@@ -146,6 +146,10 @@ export class SettingsPageComponent {
       text: 'Se eliminarán perfil, registros y configuración. Esta acción no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
+      customClass: {
+        confirmButton: 'swal-btn swal-btn-danger',
+        cancelButton: 'swal-btn swal-btn-cancel'
+      },
       confirmButtonText: 'Sí, reiniciar',
       cancelButtonText: 'Cancelar'
     });
@@ -161,7 +165,7 @@ export class SettingsPageComponent {
     await AppSwal.fire({
       title: 'Datos reiniciados',
       icon: 'success',
-      confirmButtonText: 'Ir a registro'
+      confirmButtonText: 'Entendido'
     });
 
     void this.router.navigate(['/auth']);
@@ -192,7 +196,7 @@ export class SettingsPageComponent {
       title: 'Configuracion guardada',
       text: 'Se actualizo el dia de corte.',
       icon: 'success',
-      confirmButtonText: 'Ok'
+      confirmButtonText: 'Entendido'
     });
   }
 
@@ -214,7 +218,7 @@ export class SettingsPageComponent {
       title: 'Valores actualizados',
       text: 'Los valores por categoria fueron guardados.',
       icon: 'success',
-      confirmButtonText: 'Ok'
+      confirmButtonText: 'Entendido'
     });
   }
 
