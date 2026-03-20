@@ -1,0 +1,272 @@
+.grid {
+  display: grid;
+  gap: var(--ng-space-4);
+  grid-template-columns: 360px 1fr;
+}
+
+.card {
+  border: 1px solid var(--ng-border);
+  border-radius: 0.9rem;
+  padding: var(--ng-space-5);
+  background: var(--ng-surface);
+  box-shadow: var(--ng-shadow-card);
+}
+
+.editing-glow {
+  border-color: #10b981;
+  box-shadow:
+    0 0 0 2px rgb(16 185 129 / 28%),
+    0 0 20px rgb(16 185 129 / 36%),
+    var(--ng-shadow-card);
+  animation: edit-pulse 1.2s ease-in-out 2;
+}
+
+@keyframes edit-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 rgb(16 185 129 / 0%),
+      0 0 14px rgb(16 185 129 / 18%),
+      var(--ng-shadow-card);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(16 185 129 / 28%),
+      0 0 20px rgb(16 185 129 / 36%),
+      var(--ng-shadow-card);
+  }
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--ng-title-size);
+}
+
+.card-subtitle {
+  margin: var(--ng-space-2) 0 var(--ng-space-4);
+  color: var(--ng-text-muted);
+  font-size: var(--ng-subtitle-size);
+}
+
+form {
+  display: grid;
+  gap: var(--ng-space-3);
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: var(--ng-space-3);
+}
+
+.mode-btn {
+  background: #eef4f3;
+  color: #49635f;
+  border-color: #d7e5e2;
+}
+
+.mode-btn-active {
+  background: #d9efea;
+  color: #1f514a;
+  border-color: #a8ccc4;
+}
+
+.quick-presets {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: var(--ng-space-2);
+}
+
+.btn-preset {
+  background: #f4f9f8;
+  color: #325d57;
+  border-color: #d2e4df;
+  text-align: left;
+  font-weight: 500;
+}
+
+.btn-preset-active {
+  background: #def3ee;
+  color: #1d4f47;
+  border-color: #89b9af;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+label {
+  font-weight: 600;
+  color: #334155;
+  font-size: var(--ng-subtitle-size);
+}
+
+input,
+textarea,
+select {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-sm);
+  padding: 0.62rem 0.75rem;
+  background: #fbfdfc;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.two-cols {
+  display: grid;
+  gap: var(--ng-space-3);
+  grid-template-columns: 1fr 1fr;
+}
+
+.check-row {
+  border: 1px dashed var(--ng-border);
+  border-radius: var(--ng-radius-sm);
+  padding: var(--ng-space-2) var(--ng-space-3);
+  background: #f7fbfa;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--ng-text-muted);
+}
+
+button {
+  border: 1px solid transparent;
+  border-radius: var(--ng-radius-sm);
+  background: var(--ng-primary);
+  color: #fff;
+  padding: 0.58rem 0.72rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #eef4f3;
+  color: #3f5d59;
+  border-color: #d7e5e2;
+}
+
+.btn-edit {
+  background: #e8f4f2;
+  color: #245f58;
+  border-color: #cfe3df;
+  margin-right: 0.35rem;
+}
+
+.btn-editing {
+  background: #94a3b8;
+  color: #f8fafc;
+}
+
+.btn-delete {
+  background: #fcefea;
+  color: #9b3b2d;
+  border-color: #f2d6cf;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: var(--ng-space-3);
+  align-items: end;
+  margin-bottom: var(--ng-space-4);
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-md);
+  padding: var(--ng-space-3);
+  background: #f8fbfa;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid var(--ng-border);
+  padding: 0.62rem 0.45rem;
+}
+
+th {
+  font-size: 0.82rem;
+  color: var(--ng-text-muted);
+}
+
+.error {
+  color: var(--ng-danger);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.mobile-list {
+  display: none;
+}
+
+.entry-card {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-md);
+  padding: var(--ng-space-3);
+  background: #f8fbfa;
+  margin-bottom: var(--ng-space-3);
+}
+
+.entry-card p {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+}
+
+.entry-card .btn-edit,
+.entry-card .btn-delete {
+  padding: 0.5rem 0.65rem;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: var(--ng-space-4);
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  .two-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filters button {
+    width: 100%;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-list {
+    display: block;
+  }
+}

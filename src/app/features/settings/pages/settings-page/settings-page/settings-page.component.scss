@@ -1,0 +1,137 @@
+.settings-page {
+  min-height: calc(100dvh - 108px);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--ng-space-4);
+}
+
+.settings-head h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.settings-head p {
+  margin: 0.25rem 0 0;
+  color: var(--ng-text-muted);
+}
+
+.settings-shell {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+  gap: var(--ng-space-4);
+}
+
+.settings-col {
+  min-height: 0;
+  display: grid;
+  gap: var(--ng-space-4);
+  align-content: start;
+}
+
+.card {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-lg);
+  background: var(--ng-surface);
+  padding: var(--ng-space-5);
+  box-shadow: var(--ng-shadow-card);
+}
+
+.card-grow {
+  height: 100%;
+}
+
+h3 {
+  margin: 0;
+  font-size: var(--ng-title-size);
+}
+
+.card-subtitle {
+  margin: var(--ng-space-2) 0 var(--ng-space-4);
+  color: var(--ng-text-muted);
+  font-size: var(--ng-subtitle-size);
+}
+
+.actions,
+.form-grid,
+.rates-grid,
+label {
+  display: grid;
+  gap: var(--ng-space-3);
+}
+
+.actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+.rates-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-items: end;
+}
+
+.rates-grid > button {
+  grid-column: 1 / -1;
+}
+
+label {
+  gap: var(--ng-space-2);
+  color: var(--ng-text);
+  font-weight: 600;
+}
+
+input,
+textarea {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-sm);
+  background: #fff;
+  color: var(--ng-text);
+  padding: 0.62rem 0.72rem;
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: var(--ng-radius-sm);
+  background: var(--ng-primary);
+  color: #fff;
+  padding: 0.72rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #e2ecea;
+  color: var(--ng-primary-dark);
+}
+
+.danger-card {
+  border-color: #efb3b3;
+}
+
+.btn-danger {
+  background: #b91c1c;
+}
+
+@media (max-width: 1080px) {
+  .settings-page {
+    min-height: auto;
+  }
+
+  .settings-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: var(--ng-space-4);
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .rates-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,84 @@
+.reports-grid {
+  display: grid;
+  gap: var(--ng-space-4);
+  grid-template-columns: 440px 1fr;
+}
+
+.card {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-lg);
+  background: var(--ng-surface);
+  padding: var(--ng-space-5);
+  box-shadow: var(--ng-shadow-card);
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--ng-title-size);
+}
+
+p {
+  margin: var(--ng-space-2) 0 0;
+}
+
+form {
+  display: grid;
+  gap: var(--ng-space-3);
+  margin-top: var(--ng-space-4);
+}
+
+label {
+  color: var(--ng-text);
+}
+
+input[type='month'],
+input[type='date'] {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-sm);
+  padding: 0.62rem 0.75rem;
+}
+
+.actions {
+  margin-top: var(--ng-space-4);
+}
+
+button {
+  border: 0;
+  border-radius: var(--ng-radius-sm);
+  background: var(--ng-primary);
+  color: #fff;
+  padding: 0.72rem 0.95rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.error {
+  color: var(--ng-danger);
+  margin-top: 0.75rem;
+}
+
+.cutoff-period-line {
+  white-space: nowrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid var(--ng-border);
+  padding: 0.62rem 0.45rem;
+}
+
+@media (max-width: 900px) {
+  .reports-grid {
+    grid-template-columns: 1fr;
+  }
+}

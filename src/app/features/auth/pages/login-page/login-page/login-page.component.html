@@ -1,0 +1,47 @@
+<article class="page-shell">
+  <h2>Registro de usuario</h2>
+  <p>Completa tus datos para comenzar a cargar horas extra.</p>
+
+  <form [formGroup]="form" (ngSubmit)="register()">
+    <label for="nombre">Nombre</label>
+    <input id="nombre" type="text" formControlName="nombre" />
+    @if (nombreControl.touched && nombreControl.hasError('required')) {
+      <small class="field-error">El nombre es obligatorio.</small>
+    }
+
+    <label for="apellido">Apellido</label>
+    <input id="apellido" type="text" formControlName="apellido" />
+    @if (apellidoControl.touched && apellidoControl.hasError('required')) {
+      <small class="field-error">El apellido es obligatorio.</small>
+    }
+
+    <label for="categoria">Categoria</label>
+    <select id="categoria" formControlName="categoria">
+      @for (cat of categorias; track cat.value) {
+        <option [value]="cat.value">{{ cat.label }}</option>
+      }
+    </select>
+
+    <label for="antiguedadAnios">Antigüedad (años)</label>
+    <input id="antiguedadAnios" type="number" min="0" max="50" formControlName="antiguedadAnios" />
+    @if (antiguedadControl.touched && antiguedadControl.hasError('required')) {
+      <small class="field-error">La antigüedad es obligatoria.</small>
+    }
+    @if (antiguedadControl.touched && antiguedadControl.hasError('min')) {
+      <small class="field-error">La antigüedad no puede ser negativa.</small>
+    }
+    @if (antiguedadControl.touched && antiguedadControl.hasError('max')) {
+      <small class="field-error">La antigüedad máxima permitida es 50 años.</small>
+    }
+
+    <p class="rate-preview">
+      Valor hora base: <strong>{{ valorHoraSeleccionado | currency:'ARS':'symbol':'1.0-0' }}</strong>
+    </p>
+    <p class="rate-preview">
+      Valor hora con antigüedad:
+      <strong>{{ valorHoraConAntiguedadSeleccionada | currency:'ARS':'symbol':'1.0-0' }}</strong>
+    </p>
+
+    <button type="submit">Registrarme</button>
+  </form>
+</article>

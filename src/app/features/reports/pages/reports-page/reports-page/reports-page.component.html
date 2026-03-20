@@ -1,0 +1,76 @@
+<section class="reports-grid">
+  <article class="card">
+    <h2>Generar reporte PDF</h2>
+    <p>Puedes filtrar por mes o por rango personalizado (ej: del 22/02 al 22/03).</p>
+
+    <form [formGroup]="form">
+      <label>
+        <input type="radio" formControlName="modo" value="mes" (change)="applyFilter()" />
+        Por mes
+      </label>
+      <label>
+        <input type="radio" formControlName="modo" value="corte" (change)="applyFilter()" />
+        Por periodo de corte automatico
+      </label>
+      <label>
+        <input type="radio" formControlName="modo" value="rango" (change)="applyFilter()" />
+        Rango personalizado
+      </label>
+
+      @if (form.controls.modo.value === 'mes') {
+        <label for="mes">Mes</label>
+        <input id="mes" type="month" formControlName="mes" (change)="applyFilter()" />
+      } @else if (form.controls.modo.value === 'corte') {
+        <p><strong>Corte configurado:</strong> dia {{ cutoffDay }}</p>
+        <p class="cutoff-period-line"><strong>Periodo actual:</strong> {{ cutoffPeriodLabel }}</p>
+      } @else {
+        <label for="fechaDesde">Fecha desde</label>
+        <input id="fechaDesde" type="date" formControlName="fechaDesde" (change)="applyFilter()" />
+
+        <label for="fechaHasta">Fecha hasta</label>
+        <input id="fechaHasta" type="date" formControlName="fechaHasta" (change)="applyFilter()" />
+      }
+    </form>
+
+    <div class="actions">
+      <button type="button" (click)="generatePdf()">Generar PDF</button>
+    </div>
+
+    @if (errorMessage) {
+      <p class="error">{{ errorMessage }}</p>
+    }
+  </article>
+
+  <article class="card">
+    <h2>Vista previa</h2>
+    <p><strong>Registros:</strong> {{ filteredEntries.length }}</p>
+    <p><strong>Total:</strong> {{ totalFiltrado | currency:'ARS':'symbol':'1.0-0' }}</p>
+
+    @if (!filteredEntries.length) {
+      <p>No hay registros para este filtro.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Horas</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of filteredEntries; track entry.id) {
+              <tr>
+                <td>{{ entry.fecha }}</td>
+                <td>{{ getPreviewTypeLabel(entry.tipoDia) }}</td>
+                <td>{{ entry.horasExtra }}</td>
+                <td>{{ entry.totalPesos | currency:'ARS':'symbol':'1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </article>
+</section>

@@ -1,0 +1,53 @@
+<section class="settings-page">
+  <header class="settings-head">
+    <h2>Ajustes</h2>
+    <p>Administra configuracion, valores y respaldo de datos.</p>
+  </header>
+
+  <div class="settings-shell">
+    <section class="settings-col">
+      <article class="card">
+        <h3>Configuracion general</h3>
+        <p class="card-subtitle">Define el dia de corte de liquidacion (1-28).</p>
+
+        <form class="form-grid" [formGroup]="configForm" (ngSubmit)="saveGeneralConfig()">
+          <label>
+            Dia de corte
+            <input type="number" min="1" max="28" formControlName="cutoffDay" />
+          </label>
+          <button type="submit">Guardar configuracion</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h3>Respaldo de datos</h3>
+        <p class="card-subtitle">Exporta o restaura tus datos del navegador en formato JSON.</p>
+        <div class="actions">
+          <button type="button" (click)="exportBackup()">Exportar respaldo</button>
+          <button class="btn-secondary" type="button" (click)="openImportDialog()">Importar respaldo</button>
+        </div>
+        <input #backupInput type="file" accept=".json,application/json" hidden (change)="importBackup($event)" />
+      </article>
+
+      <article class="card danger-card">
+        <h3>Reinicio total</h3>
+        <p class="card-subtitle">Borra perfil, horas extra y valores guardados para comenzar desde cero.</p>
+        <button class="btn-danger" type="button" (click)="resetData()">Reiniciar datos</button>
+      </article>
+    </section>
+
+    <section class="settings-col">
+      <article class="card card-grow">
+        <h3>Valores por categoria</h3>
+        <p class="card-subtitle">Edita el valor hora base en ARS para cada categoria.</p>
+        <form class="rates-grid" [formGroup]="ratesForm" (ngSubmit)="saveRates()">
+          <label *ngFor="let category of categoryOrder">
+            {{ categoryLabel(category) }}
+            <input type="number" min="1" [formControlName]="category" />
+          </label>
+          <button type="submit">Guardar valores</button>
+        </form>
+      </article>
+    </section>
+  </div>
+</section>

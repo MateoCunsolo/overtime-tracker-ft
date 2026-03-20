@@ -1,0 +1,39 @@
+<header class="main-header">
+  <div class="brand-wrap">
+    <button
+      class="burger-btn"
+      [class.is-open]="isMobileMenuOpen"
+      type="button"
+      [attr.aria-label]="isMobileMenuOpen ? 'Cerrar menu' : 'Abrir menu'"
+      [attr.aria-expanded]="isMobileMenuOpen"
+      (click)="toggleMobileMenu()"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <h1>Overtime Tracker</h1>
+  </div>
+
+  <nav [class.nav-open]="isMobileMenuOpen">
+    <div class="menu-head">
+      <p class="menu-project-title">Overtime Tracker</p>
+      <button class="menu-close-btn" type="button" aria-label="Cerrar menu" (click)="closeMenu()">
+        ×
+      </button>
+    </div>
+    <a routerLink="/dashboard" routerLinkActive="active-link" (click)="closeMenu()">Inicio</a>
+    <a routerLink="/overtime" routerLinkActive="active-link" (click)="closeMenu()">Horas extra</a>
+    <a routerLink="/reports" routerLinkActive="active-link" (click)="closeMenu()">Reportes</a>
+    <a routerLink="/settings" routerLinkActive="active-link" (click)="closeMenu()">Ajustes</a>
+    <button type="button" (click)="logout()">Salir</button>
+  </nav>
+</header>
+
+@if (isMobileMenuOpen) {
+  <div class="menu-overlay" (click)="closeMenu()" aria-hidden="true"></div>
+}
+
+<main class="main-content">
+  <router-outlet />
+</main>

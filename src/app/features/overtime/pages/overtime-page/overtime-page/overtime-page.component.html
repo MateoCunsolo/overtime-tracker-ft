@@ -1,0 +1,170 @@
+<section class="grid">
+  <article class="card" #editFormCard [class.editing-glow]="showEditGlow || !!editingEntryId">
+    <h2>{{ editingEntryId ? 'Editar horas extra' : 'Cargar horas extra' }}</h2>
+    <p class="card-subtitle">
+      {{ editingEntryId ? 'Actualiza el registro seleccionado.' : 'Completa los datos del turno para guardar el registro.' }}
+    </p>
+
+    <div class="mode-switch">
+      <button type="button" class="mode-btn" [class.mode-btn-active]="!isManualMode" (click)="enableQuickMode()">
+        Carga rapida
+      </button>
+      <button
+        type="button"
+        class="mode-btn"
+        [class.mode-btn-active]="isManualMode || !!editingEntryId"
+        (click)="enableManualMode()"
+      >
+        Carga manual
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="saveEntry()">
+      @if (!isManualMode && !editingEntryId) {
+        <div class="quick-presets">
+          @for (preset of quickPresets; track preset.label) {
+            <button
+              class="btn-preset"
+              [class.btn-preset-active]="selectedPresetLabel === preset.label"
+              type="button"
+              (click)="applyQuickPreset(preset)"
+            >
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+      }
+
+      @if (isManualMode || editingEntryId) {
+        <div class="field">
+          <label for="fecha">Fecha</label>
+          <input id="fecha" type="date" formControlName="fecha" />
+        </div>
+
+        <div class="two-cols">
+          <div class="field">
+            <label for="inicio">Inicio</label>
+            <input id="inicio" type="time" formControlName="horaInicio" />
+          </div>
+          <div class="field">
+            <label for="fin">Fin</label>
+            <input id="fin" type="time" formControlName="horaFin" />
+          </div>
+        </div>
+
+        <div class="check-row">
+          <label class="checkbox">
+            <input type="checkbox" formControlName="esFeriadoNacional" />
+            Es feriado nacional (+65%)
+          </label>
+        </div>
+      }
+
+      <div class="field">
+        <label for="obs">Observaciones</label>
+        <textarea id="obs" formControlName="observaciones" rows="3"></textarea>
+      </div>
+
+      @if (errorMessage) {
+        <p class="error">{{ errorMessage }}</p>
+      }
+
+      <button type="submit">{{ editingEntryId ? 'Guardar cambios' : 'Guardar registro' }}</button>
+      @if (editingEntryId) {
+        <button class="btn-secondary" type="button" (click)="cancelEdit()">Cancelar edición</button>
+      }
+    </form>
+  </article>
+
+  <article class="card">
+    <h2>Historial</h2>
+    <p class="card-subtitle">Registros recientes con detalle de valor y total.</p>
+
+    <form class="filters" [formGroup]="filterForm">
+      <div class="field">
+        <label for="fechaDesde">Desde</label>
+        <input id="fechaDesde" type="date" formControlName="fechaDesde" />
+      </div>
+      <div class="field">
+        <label for="fechaHasta">Hasta</label>
+        <input id="fechaHasta" type="date" formControlName="fechaHasta" />
+      </div>
+      <div class="field">
+        <label for="tipoDia">Tipo de día</label>
+        <select id="tipoDia" formControlName="tipoDia">
+          <option value="all">Todos</option>
+          <option value="weekday">Semana (+50%)</option>
+          <option value="weekend">Sáb/Dom (+100%)</option>
+          <option value="holiday">Feriado (+65%)</option>
+        </select>
+      </div>
+      <button class="btn-secondary" type="button" (click)="clearFilters()">Limpiar</button>
+    </form>
+
+    @if (!filteredEntries.length) {
+      <p>Aun no cargaste horas extra.</p>
+    } @else {
+      <div class="table-wrap desktop-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Horas</th>
+              <th>Valor hora</th>
+              <th>Antig.</th>
+              <th>Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of filteredEntries; track entry.id) {
+              <tr>
+                <td>{{ entry.fecha }}</td>
+                <td>{{ dayTypeLabelMap[entry.tipoDia] }}</td>
+                <td>{{ entry.horasExtra }}</td>
+                <td>{{ entry.valorHoraConAntiguedad | currency:'ARS':'symbol':'1.0-0' }}</td>
+                <td>{{ entry.antiguedadAnios }}%</td>
+                <td>{{ entry.totalPesos | currency:'ARS':'symbol':'1.0-0' }}</td>
+                <td>
+                  <button
+                    class="btn-edit"
+                    [class.btn-editing]="editingEntryId === entry.id"
+                    type="button"
+                    (click)="startEdit(entry)"
+                  >
+                    {{ editingEntryId === entry.id ? 'Editando...' : 'Editar' }}
+                  </button>
+                  <button class="btn-delete" type="button" (click)="deleteEntry(entry.id)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mobile-list">
+        @for (entry of filteredEntries; track entry.id) {
+          <article class="entry-card">
+            <p><strong>Fecha:</strong> {{ entry.fecha }}</p>
+            <p><strong>Tipo:</strong> {{ dayTypeLabelMap[entry.tipoDia] }}</p>
+            <p><strong>Horas:</strong> {{ entry.horasExtra }}</p>
+            <p><strong>Valor hora:</strong> {{ entry.valorHoraConAntiguedad | currency:'ARS':'symbol':'1.0-0' }}</p>
+            <p><strong>Total:</strong> {{ entry.totalPesos | currency:'ARS':'symbol':'1.0-0' }}</p>
+            <button
+              class="btn-edit"
+              [class.btn-editing]="editingEntryId === entry.id"
+              type="button"
+              (click)="startEdit(entry)"
+            >
+              {{ editingEntryId === entry.id ? 'Editando...' : 'Editar' }}
+            </button>
+            <button class="btn-delete" type="button" (click)="deleteEntry(entry.id)">Eliminar</button>
+          </article>
+        }
+      </div>
+    }
+  </article>
+</section>

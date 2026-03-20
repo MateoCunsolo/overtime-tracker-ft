@@ -1,0 +1,56 @@
+.page-shell {
+  width: min(420px, 100%);
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-lg);
+  padding: var(--ng-space-5);
+  background: var(--ng-surface);
+  box-shadow: var(--ng-shadow-card);
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--ng-title-size);
+}
+
+p {
+  margin-top: var(--ng-space-2);
+}
+
+form {
+  margin-top: var(--ng-space-4);
+  display: grid;
+  gap: var(--ng-space-3);
+}
+
+label {
+  font-size: var(--ng-subtitle-size);
+  color: var(--ng-text-muted);
+}
+
+input,
+select {
+  border: 1px solid var(--ng-border);
+  border-radius: var(--ng-radius-sm);
+  padding: 0.62rem 0.75rem;
+}
+
+.rate-preview {
+  margin-top: 0.25rem;
+  color: var(--ng-text);
+}
+
+.field-error {
+  color: var(--ng-danger);
+  margin-top: -0.35rem;
+}
+
+button {
+  margin-top: var(--ng-space-2);
+  border: 0;
+  border-radius: var(--ng-radius-sm);
+  background: var(--ng-primary);
+  color: #fff;
+  padding: 0.72rem 1rem;
+  cursor: pointer;
+  font-weight: 700;
+}

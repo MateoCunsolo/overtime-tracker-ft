@@ -1,0 +1,52 @@
+<section class="dashboard-grid">
+  @if (showOnboarding) {
+    <article class="card onboarding-card card-full">
+      <h2>Inicio rápido</h2>
+      <p>Sigue estos pasos para usar la app en menos de un minuto.</p>
+      <ol>
+        <li>Carga tus horas extra desde <strong>Horas extra</strong>.</li>
+        <li>Revisa tu período de liquidación del día {{ cutoffDay }} al día {{ cutoffDay }}.</li>
+        <li>Genera el PDF desde <strong>Reportes</strong> con el filtro que prefieras.</li>
+      </ol>
+      <button type="button" (click)="dismissOnboarding()">Entendido</button>
+    </article>
+  }
+
+  <article class="card">
+    <h2>Tu perfil</h2>
+    @if (profile) {
+      <p><strong>Nombre:</strong> {{ profile.nombre }} {{ profile.apellido }}</p>
+      <p><strong>Categoria:</strong> {{ profile.categoria }}</p>
+      <p><strong>Antigüedad:</strong> {{ profile.antiguedadAnios }} años ({{ profile.antiguedadAnios }}%)</p>
+    }
+    <p><strong>Total acumulado:</strong> {{ totalGanado | currency:'ARS':'symbol':'1.0-0' }}</p>
+    <a routerLink="/overtime">Cargar horas extra</a>
+  </article>
+
+  <article class="card">
+    <h2>Resumen rápido</h2>
+    <p><strong>Período ({{ cutoffDay }} a {{ cutoffDay }}):</strong> {{ periodoLiquidacion }}</p>
+    <p><strong>Horas del período:</strong> {{ totalHorasMesLiquidacion }}</p>
+    <p><strong>Total del período:</strong> {{ totalGanadoMesLiquidacion | currency:'ARS':'symbol':'1.0-0' }}</p>
+    <p><strong>Pago estimado:</strong> {{ fechaPagoEstimada }} (4° día hábil)</p>
+    <p><strong>Última carga:</strong> {{ ultimoRegistroFecha }}</p>
+  </article>
+
+  <article class="card card-full">
+    <h2>Distribución de horas (período {{ cutoffDay }} a {{ cutoffDay }})</h2>
+    <ul>
+      <li>Horas al 50% (días de semana): {{ horas50 }}</li>
+      <li>Horas al 100% (sábado/domingo): {{ horas100 }}</li>
+      <li>Horas feriado (+65%): {{ horasFeriado }}</li>
+    </ul>
+  </article>
+</section>
+
+<a
+  class="fab-overtime"
+  routerLink="/overtime"
+  aria-label="Cargar horas extra"
+  title="Cargar horas extra"
+>
+  + Horas extra
+</a>
