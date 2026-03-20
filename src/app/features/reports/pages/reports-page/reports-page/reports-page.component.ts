@@ -25,8 +25,6 @@ export class ReportsPageComponent {
   filteredEntries: OvertimeEntry[] = [];
   errorMessage = '';
   exportFormat: 'pdf' | 'png' | 'jpg' = 'pdf';
-  private norgreenLogoDataUrl: string | null = null;
-  private readonly norgreenLogoAssetPath = '/norgreen-head.png';
 
   readonly form = this.fb.group({
     modo: ['mes' as 'mes' | 'rango' | 'corte', [Validators.required]],
@@ -128,7 +126,42 @@ export class ReportsPageComponent {
     doc.text('Reporte de Horas Extras', 40, 40);
 
     // Logo Norgreen arriba a la derecha (header).
-    const logoPngDataUrl = await this.getNorgreenLogoDataUrl();
+    const logoPngDataUrl = await (async (): Promise<string | null> => {
+      try {
+        const res = await fetch('https://www.norgreen.com/wp-content/uploads/2019/12/norgreen-head.svg', {
+          mode: 'cors'
+        });
+        if (!res.ok) return null;
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+          const img = new Image();
+          img.decoding = 'async';
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('No se pudo cargar el logo'));
+            img.src = objectUrl;
+          });
+
+          const canvas = document.createElement('canvas');
+          const baseW = 420;
+          const baseH = Math.round((baseW * 30) / 206.22);
+          canvas.width = baseW;
+          canvas.height = baseH;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
+          ctx.drawImage(img, 0, 0, baseW, baseH);
+          return canvas.toDataURL('image/png', 1);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      } catch {
+        return null;
+      }
+    })();
 
     if (logoPngDataUrl) {
       const pageW = doc.internal.pageSize.getWidth();
@@ -237,7 +270,42 @@ export class ReportsPageComponent {
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Logo Norgreen arriba a la derecha.
-    const logoPngDataUrl = await this.getNorgreenLogoDataUrl();
+    const logoPngDataUrl = await (async (): Promise<string | null> => {
+      try {
+        const res = await fetch('https://www.norgreen.com/wp-content/uploads/2019/12/norgreen-head.svg', {
+          mode: 'cors'
+        });
+        if (!res.ok) return null;
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+          const img = new Image();
+          img.decoding = 'async';
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('No se pudo cargar el logo'));
+            img.src = objectUrl;
+          });
+
+          const canvas = document.createElement('canvas');
+          const baseW = 420;
+          const baseH = Math.round((baseW * 30) / 206.22);
+          canvas.width = baseW;
+          canvas.height = baseH;
+
+          const rctx = canvas.getContext('2d');
+          if (!rctx) return null;
+          rctx.drawImage(img, 0, 0, baseW, baseH);
+          return canvas.toDataURL('image/png', 1);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      } catch {
+        return null;
+      }
+    })();
 
     if (logoPngDataUrl) {
       const logoImg = new Image();
@@ -323,30 +391,9 @@ export class ReportsPageComponent {
       ctx.textAlign = 'left';
     });
 
-    // Margen inferior fijo para evitar superposición del footer con el resumen,
-    // incluso cuando hay pocos registros.
-    const summaryEndY = summaryTop + 36 + rowHeight * summaryRows.length;
-    const footerY = summaryEndY + 40;
-    const minCanvasHeight = footerY + 28;
-    if (canvasHeight < minCanvasHeight) {
-      const resizedCanvas = document.createElement('canvas');
-      resizedCanvas.width = canvas.width;
-      resizedCanvas.height = minCanvasHeight;
-      const resizedCtx = resizedCanvas.getContext('2d');
-      if (resizedCtx) {
-        resizedCtx.fillStyle = '#ffffff';
-        resizedCtx.fillRect(0, 0, resizedCanvas.width, resizedCanvas.height);
-        resizedCtx.drawImage(canvas, 0, 0);
-        canvas.width = resizedCanvas.width;
-        canvas.height = resizedCanvas.height;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(resizedCanvas, 0, 0);
-      }
-    }
-
     ctx.fillStyle = '#6b7280';
     ctx.font = '500 14px Montserrat, sans-serif';
-    ctx.fillText('Herramienta desarollada por Mateo Cunsolo', 45, footerY);
+    ctx.fillText('Herramienta desarollada por Mateo Cunsolo', 45, canvasHeight - 24);
 
     const operatorName = `${this.profile?.apellido ?? 'operario'}-${this.profile?.nombre ?? ''}`
       .trim()
@@ -393,36 +440,6 @@ export class ReportsPageComponent {
     }
 
     return true;
-  }
-
-  private async getNorgreenLogoDataUrl(): Promise<string | null> {
-    if (this.norgreenLogoDataUrl) return this.norgreenLogoDataUrl;
-
-    try {
-      const img = new Image();
-      img.decoding = 'async';
-
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('No se pudo cargar el logo local'));
-        img.src = this.norgreenLogoAssetPath;
-      });
-
-      const canvas = document.createElement('canvas');
-      const width = img.naturalWidth || 420;
-      const height = img.naturalHeight || Math.round((width * 30) / 206.22);
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return null;
-
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      this.norgreenLogoDataUrl = canvas.toDataURL('image/png', 1);
-      return this.norgreenLogoDataUrl;
-    } catch {
-      return null;
-    }
   }
 
   private getCurrentMonthValue(): string {
