@@ -9,8 +9,12 @@
   </p>
 
   <div class="auth-mode-toggle">
-    <button type="button" [class.active]="isLoginMode" (click)="setMode(true)">Iniciar sesión</button>
-    <button type="button" [class.active]="!isLoginMode" (click)="setMode(false)">Registrarme</button>
+    <button type="button" [class.active]="isLoginMode" [disabled]="authSubmitting" (click)="setMode(true)">
+      Iniciar sesión
+    </button>
+    <button type="button" [class.active]="!isLoginMode" [disabled]="authSubmitting" (click)="setMode(false)">
+      Registrarme
+    </button>
   </div>
 
   @if (isLoginMode) {
@@ -33,7 +37,9 @@
         <small class="field-error">Mínimo 8 caracteres.</small>
       }
 
-      <button type="submit">Entrar</button>
+      <button type="submit" [disabled]="authSubmitting">
+        {{ authSubmitting ? 'Entrando…' : 'Entrar' }}
+      </button>
     </form>
   } @else {
     <form [formGroup]="registerForm" (ngSubmit)="submitRegister()">
@@ -105,7 +111,9 @@
         <strong>{{ valorHoraConAntiguedadSeleccionada | currency:'ARS':'symbol':'1.0-0' }}</strong>
       </p>
 
-      <button type="submit">Crear cuenta</button>
+      <button type="submit" [disabled]="authSubmitting">
+        {{ authSubmitting ? 'Creando cuenta…' : 'Crear cuenta' }}
+      </button>
     </form>
   }
 </article>

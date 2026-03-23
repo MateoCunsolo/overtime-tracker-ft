@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { OvertimeEntry, WorkShift } from '../../../../../core/models/overtime.models';
 import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
-import { AppSwal } from '../../../../../core/utils/alert.util';
+import { AppSwal, closeProcessingAlert, showProcessingAlert } from '../../../../../core/utils/alert.util';
 import { getLoadFailureMessage, getUserFacingErrorMessage, isUnauthorizedAfterLogout } from '../../../../../core/utils/api-error.util';
 
 @Component({
@@ -24,6 +24,10 @@ export class OvertimePageComponent {
   selectedPresetLabel: string | null = null;
   showEditGlow = false;
   errorMessage = '';
+  /** Evita doble POST al guardar. */
+  savingEntry = false;
+  /** Id del registro que se está borrando (evita doble DELETE). */
+  deletingEntryId: string | null = null;
 
   readonly form = this.fb.group({
     fecha: ['', [Validators.required]],
@@ -113,6 +117,9 @@ export class OvertimePageComponent {
 
     const editingId = this.editingEntryId;
 
+    if (this.savingEntry) return;
+    this.savingEntry = true;
+    showProcessingAlert(editingId ? 'Guardando cambios...' : 'Guardando registro...');
     try {
       if (editingId) {
         await firstValueFrom(this.overtimeService.updateEntry(editingId, payload));
@@ -120,6 +127,7 @@ export class OvertimePageComponent {
         await firstValueFrom(this.overtimeService.createEntry(payload));
       }
 
+      closeProcessingAlert();
       this.resetForm();
       this.reload();
       await AppSwal.fire({
@@ -130,6 +138,7 @@ export class OvertimePageComponent {
         showConfirmButton: false
       });
     } catch (error) {
+      closeProcessingAlert();
       this.errorMessage = getUserFacingErrorMessage(
         error,
         'No pudimos guardar. Revisá horarios, feriados y turno.'
@@ -140,6 +149,8 @@ export class OvertimePageComponent {
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.savingEntry = false;
     }
   }
 
@@ -208,8 +219,12 @@ export class OvertimePageComponent {
 
     if (!result.isConfirmed) return;
 
+    if (this.deletingEntryId) return;
+    this.deletingEntryId = id;
+    showProcessingAlert('Eliminando registro...');
     try {
       await firstValueFrom(this.overtimeService.deleteEntry(id));
+      closeProcessingAlert();
       this.reload();
       if (this.editingEntryId === id) this.resetForm();
 
@@ -221,12 +236,15 @@ export class OvertimePageComponent {
         showConfirmButton: false
       });
     } catch (error) {
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'No se pudo borrar',
         text: getUserFacingErrorMessage(error, 'Probá de nuevo en un momento.'),
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.deletingEntryId = null;
     }
   }
 

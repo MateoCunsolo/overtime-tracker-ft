@@ -49,7 +49,9 @@
       </form>
 
       <div class="actions">
-        <button type="button" (click)="exportReport()">Exportar reporte</button>
+        <button type="button" [disabled]="exportInProgress" (click)="exportReport()">
+          {{ exportInProgress ? 'Exportando…' : 'Exportar reporte' }}
+        </button>
       </div>
 
       @if (errorMessage) {

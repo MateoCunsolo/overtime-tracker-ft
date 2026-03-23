@@ -9,7 +9,7 @@ import { WorkerCategory, WorkShift } from '../../../../../core/models/overtime.m
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
 import { RateConfigService } from '../../../../../core/services/rate-config.service';
-import { AppSwal } from '../../../../../core/utils/alert.util';
+import { AppSwal, closeProcessingAlert, showProcessingAlert } from '../../../../../core/utils/alert.util';
 import { getUserFacingErrorMessage, resolveInternalReturnUrl } from '../../../../../core/utils/api-error.util';
 
 @Component({
@@ -22,6 +22,8 @@ export class LoginPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
 
   isLoginMode = true;
+  /** Evita doble envío del formulario (doble tap / Enter + clic). */
+  authSubmitting = false;
 
   readonly categorias: { value: WorkerCategory; label: string }[] = [
     { value: 'especial', label: 'Especial' },
@@ -99,12 +101,15 @@ export class LoginPageComponent implements OnInit {
   }
 
   async submitLogin(): Promise<void> {
+    if (this.authSubmitting) return;
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
     }
 
+    this.authSubmitting = true;
     const value = this.loginForm.getRawValue();
+    showProcessingAlert('Estamos iniciando tu sesión...');
     try {
       await firstValueFrom(
         this.authService.login({
@@ -112,9 +117,11 @@ export class LoginPageComponent implements OnInit {
           password: value.password!
         })
       );
+      closeProcessingAlert();
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
       void this.router.navigateByUrl(resolveInternalReturnUrl(returnUrl));
     } catch (err) {
+      closeProcessingAlert();
       const text = getUserFacingErrorMessage(
         err,
         'Email o contraseña incorrectos. Revisá los datos e intentá otra vez.'
@@ -125,16 +132,21 @@ export class LoginPageComponent implements OnInit {
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.authSubmitting = false;
     }
   }
 
   async submitRegister(): Promise<void> {
+    if (this.authSubmitting) return;
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       return;
     }
 
+    this.authSubmitting = true;
     const value = this.registerForm.getRawValue();
+    showProcessingAlert('Estamos creando tu cuenta...');
     try {
       await firstValueFrom(
         this.authService.register({
@@ -147,9 +159,11 @@ export class LoginPageComponent implements OnInit {
           workShift: value.workShift!
         })
       );
+      closeProcessingAlert();
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
       void this.router.navigateByUrl(resolveInternalReturnUrl(returnUrl));
     } catch (err) {
+      closeProcessingAlert();
       const text = getUserFacingErrorMessage(
         err,
         'No pudimos crear la cuenta. Si el email ya está en uso, probá con otro o iniciá sesión.'
@@ -160,6 +174,8 @@ export class LoginPageComponent implements OnInit {
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.authSubmitting = false;
     }
   }
 }

@@ -34,7 +34,9 @@
         <a routerLink="/settings" routerLinkActive="active-link" (click)="closeMenu()">Ajustes</a>
       </div>
       <app-theme-toggle class="nav-theme-toggle" />
-      <button class="btn-logout" type="button" (click)="logout()">Salir</button>
+      <button class="btn-logout" type="button" [disabled]="logoutInProgress" (click)="logout()">
+        {{ logoutInProgress ? 'Saliendo…' : 'Salir' }}
+      </button>
     </nav>
   </div>
 </header>

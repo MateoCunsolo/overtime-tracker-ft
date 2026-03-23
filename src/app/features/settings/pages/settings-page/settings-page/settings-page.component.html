@@ -62,7 +62,9 @@
           <small class="field-error">La antigüedad máxima permitida es 50 años.</small>
         }
 
-        <button type="submit">Guardar perfil</button>
+        <button type="submit" [disabled]="savingProfile">
+          {{ savingProfile ? 'Guardando…' : 'Guardar perfil' }}
+        </button>
       </form>
     </article>
 
@@ -81,7 +83,9 @@
           <input type="number" min="1" max="28" formControlName="cutoffDay" />
         </label>
         @if (isAdmin) {
-          <button type="submit">Guardar configuración</button>
+          <button type="submit" [disabled]="savingConfig">
+            {{ savingConfig ? 'Guardando…' : 'Guardar configuración' }}
+          </button>
         }
       </form>
     </article>
@@ -101,7 +105,9 @@
           <input type="number" min="1" [formControlName]="category" />
         </label>
         @if (isAdmin) {
-          <button type="submit">Guardar valores</button>
+          <button type="submit" [disabled]="savingRates">
+            {{ savingRates ? 'Guardando…' : 'Guardar valores' }}
+          </button>
         }
       </form>
     </article>
@@ -110,7 +116,9 @@
       <h3>Respaldo de datos</h3>
       <p class="card-subtitle">Exportá un snapshot JSON de lo guardado en el servidor (perfil, tarifas, horas).</p>
       <div class="backup-actions">
-        <button type="button" (click)="exportBackup()">Exportar respaldo</button>
+        <button type="button" [disabled]="exportingBackup" (click)="exportBackup()">
+          {{ exportingBackup ? 'Exportando…' : 'Exportar respaldo' }}
+        </button>
         <button class="btn-secondary" type="button" (click)="openImportDialog()">Importar respaldo</button>
       </div>
       <input #backupInput type="file" accept=".json,application/json" hidden (change)="importBackup($event)" />
@@ -125,7 +133,9 @@
             cuando quieras.
           </p>
         </div>
-        <button class="btn-session-leave" type="button" (click)="resetData()">Cerrar sesión</button>
+        <button class="btn-session-leave" type="button" [disabled]="endingSession" (click)="resetData()">
+          {{ endingSession ? 'Saliendo…' : 'Cerrar sesión' }}
+        </button>
       </div>
     </article>
   </div>

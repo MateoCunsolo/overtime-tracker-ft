@@ -8,7 +8,7 @@ import { OvertimeEntry, UserProfile } from '../../../../../core/models/overtime.
 import { AppSettingsService } from '../../../../../core/services/app-settings.service';
 import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
-import { AppSwal } from '../../../../../core/utils/alert.util';
+import { AppSwal, closeProcessingAlert, showProcessingAlert } from '../../../../../core/utils/alert.util';
 import { getLoadFailureMessage, isUnauthorizedAfterLogout } from '../../../../../core/utils/api-error.util';
 
 @Component({
@@ -29,6 +29,8 @@ export class ReportsPageComponent implements OnInit {
   entriesLoading = true;
   entriesLoadError = false;
   entriesLoadErrorMessage = '';
+  /** Evita abrir dos diálogos de exportación a la vez. */
+  exportInProgress = false;
 
   readonly form = this.fb.group({
     modo: ['mes' as 'mes' | 'rango' | 'corte', [Validators.required]],
@@ -143,24 +145,30 @@ export class ReportsPageComponent implements OnInit {
   }
 
   async exportReport(): Promise<void> {
-    const { isConfirmed, isDenied } = await AppSwal.fire({
-      title: '¿Cómo querés exportar?',
-      text: 'Elegí el formato del reporte.',
-      icon: 'question',
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: 'PDF',
-      denyButtonText: 'Imagen',
-      cancelButtonText: 'Cancelar'
-    });
+    if (this.exportInProgress) return;
+    this.exportInProgress = true;
+    try {
+      const { isConfirmed, isDenied } = await AppSwal.fire({
+        title: '¿Cómo querés exportar?',
+        text: 'Elegí el formato del reporte.',
+        icon: 'question',
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: 'PDF',
+        denyButtonText: 'Imagen',
+        cancelButtonText: 'Cancelar'
+      });
 
-    if (isConfirmed) {
-      await this.generatePdf();
-      return;
-    }
+      if (isConfirmed) {
+        await this.generatePdf();
+        return;
+      }
 
-    if (isDenied) {
-      await this.generateImage('png');
+      if (isDenied) {
+        await this.generateImage('png');
+      }
+    } finally {
+      this.exportInProgress = false;
     }
   }
 
@@ -168,99 +176,112 @@ export class ReportsPageComponent implements OnInit {
     const canExport = await this.validateReportData();
     if (!canExport) return;
 
+    showProcessingAlert('Generando PDF...');
     const reportLabel = this.getReportLabel();
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
-    doc.setFontSize(18);
-    doc.text('Reporte de Horas Extras', 40, 40);
+      doc.setFontSize(18);
+      doc.text('Reporte de Horas Extras', 40, 40);
 
-    // Logo local en esquina superior derecha.
-    const logoPngDataUrl = await this.getLocalLogoDataUrl();
+      // Logo local en esquina superior derecha.
+      const logoPngDataUrl = await this.getLocalLogoDataUrl();
 
-    if (logoPngDataUrl) {
-      const pageW = doc.internal.pageSize.getWidth();
-      const logoW = 95;
-      const logoH = (logoW * 30) / 206.22;
-      const x = pageW - logoW - 40;
-      doc.addImage(logoPngDataUrl, 'PNG', x, 18, logoW, logoH);
-    }
-
-    doc.setFontSize(12);
-    const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
-    doc.setFillColor(145, 255, 80);
-    doc.roundedRect(36, 48, 335, 22, 4, 4, 'F');
-    doc.setTextColor(20, 35, 20);
-    doc.text(operatorLine, 40, 63);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Categoria: ${this.profile?.categoria ?? '-'}`, 40, 83);
-    doc.text(`Periodo: ${reportLabel}`, 40, 101);
-    doc.text(`Registros: ${this.filteredEntries.length}`, 40, 119);
-
-    autoTable(doc, {
-      startY: 140,
-      head: [['FECHA', 'PORCENTAJE DE PAGO', 'HORAS']],
-      body: this.filteredEntries.map((entry) => [
-        entry.fecha,
-        this.getDayTypeLabel(entry),
-        entry.horasExtra.toString()
-      ]),
-      styles: { fontSize: 11, cellPadding: 4 },
-      headStyles: { fillColor: [17, 24, 39], fontSize: 12 },
-      columnStyles: {
-        0: { cellWidth: 120 },
-        1: { cellWidth: 190 },
-        2: { cellWidth: 82, halign: 'right' }
+      if (logoPngDataUrl) {
+        const pageW = doc.internal.pageSize.getWidth();
+        const logoW = 95;
+        const logoH = (logoW * 30) / 206.22;
+        const x = pageW - logoW - 40;
+        doc.addImage(logoPngDataUrl, 'PNG', x, 18, logoW, logoH);
       }
-    });
 
-    const totals = this.calculateHoursByRateType();
-    const finalY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 125;
-    autoTable(doc, {
-      startY: finalY + 20,
-      head: [['RESUMEN', 'HORAS']],
-      body: [
-        ['TOTAL HORAS TRABAJADAS AL 50%', totals.weekday.toFixed(2)],
-        ['TOTAL HORAS TRABAJADAS AL 100%', totals.weekend.toFixed(2)],
-        ['TOTAL HORAS TRABAJADAS FERIADOS', totals.holiday.toFixed(2)]
-      ],
-      styles: { fontSize: 11, cellPadding: 4 },
-      headStyles: { fillColor: [107, 114, 128], fontSize: 12 },
-      columnStyles: {
-        0: { cellWidth: 360 },
-        1: { halign: 'right' }
-      },
-      didParseCell: (data) => {
-        if (data.section === 'head' && data.column.index === 1) {
-          data.cell.styles.halign = 'right';
+      doc.setFontSize(12);
+      const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
+      doc.setFillColor(145, 255, 80);
+      doc.roundedRect(36, 48, 335, 22, 4, 4, 'F');
+      doc.setTextColor(20, 35, 20);
+      doc.text(operatorLine, 40, 63);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Categoria: ${this.profile?.categoria ?? '-'}`, 40, 83);
+      doc.text(`Periodo: ${reportLabel}`, 40, 101);
+      doc.text(`Registros: ${this.filteredEntries.length}`, 40, 119);
+
+      autoTable(doc, {
+        startY: 140,
+        head: [['FECHA', 'PORCENTAJE DE PAGO', 'HORAS']],
+        body: this.filteredEntries.map((entry) => [
+          entry.fecha,
+          this.getDayTypeLabel(entry),
+          entry.horasExtra.toString()
+        ]),
+        styles: { fontSize: 11, cellPadding: 4 },
+        headStyles: { fillColor: [17, 24, 39], fontSize: 12 },
+        columnStyles: {
+          0: { cellWidth: 120 },
+          1: { cellWidth: 190 },
+          2: { cellWidth: 82, halign: 'right' }
         }
-      }
-    });
+      });
 
-    const pageHeight = doc.internal.pageSize.getHeight();
-    doc.setFontSize(11);
-    doc.setTextColor(107, 114, 128);
-    doc.text('Herramienta desarrollada por Mateo Cunsolo', 40, pageHeight - 20);
-    doc.setTextColor(0, 0, 0);
+      const totals = this.calculateHoursByRateType();
+      const finalY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 125;
+      autoTable(doc, {
+        startY: finalY + 20,
+        head: [['RESUMEN', 'HORAS']],
+        body: [
+          ['TOTAL HORAS TRABAJADAS AL 50%', totals.weekday.toFixed(2)],
+          ['TOTAL HORAS TRABAJADAS AL 100%', totals.weekend.toFixed(2)],
+          ['TOTAL HORAS TRABAJADAS FERIADOS', totals.holiday.toFixed(2)]
+        ],
+        styles: { fontSize: 11, cellPadding: 4 },
+        headStyles: { fillColor: [107, 114, 128], fontSize: 12 },
+        columnStyles: {
+          0: { cellWidth: 360 },
+          1: { halign: 'right' }
+        },
+        didParseCell: (data) => {
+          if (data.section === 'head' && data.column.index === 1) {
+            data.cell.styles.halign = 'right';
+          }
+        }
+      });
 
-    const operatorName = `${this.profile?.apellido ?? 'operario'}-${this.profile?.nombre ?? ''}`
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-');
-    const fileName = `reporte-horas-${operatorName}-${reportLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`;
-    doc.save(fileName);
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setFontSize(11);
+      doc.setTextColor(107, 114, 128);
+      doc.text('Herramienta desarrollada por Mateo Cunsolo', 40, pageHeight - 20);
+      doc.setTextColor(0, 0, 0);
 
-    await AppSwal.fire({
-      title: 'Listo',
-      text: 'El PDF se descargó en tu carpeta de descargas.',
-      icon: 'success',
-      confirmButtonText: 'Aceptar'
-    });
+      const operatorName = `${this.profile?.apellido ?? 'operario'}-${this.profile?.nombre ?? ''}`
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-');
+      const fileName = `reporte-horas-${operatorName}-${reportLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+      doc.save(fileName);
+
+      closeProcessingAlert();
+      await AppSwal.fire({
+        title: 'Listo',
+        text: 'El PDF se descargó en tu carpeta de descargas.',
+        icon: 'success',
+        confirmButtonText: 'Aceptar'
+      });
+    } catch {
+      closeProcessingAlert();
+      await AppSwal.fire({
+        title: 'No se pudo exportar',
+        text: 'No pudimos generar el PDF. Probá de nuevo o exportá como imagen.',
+        icon: 'error',
+        confirmButtonText: 'Aceptar'
+      });
+    }
   }
 
   private async generateImage(format: 'png' | 'jpeg'): Promise<void> {
     const canExport = await this.validateReportData();
     if (!canExport) return;
 
+    showProcessingAlert('Generando imagen...');
     const reportLabel = this.getReportLabel();
     const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
     const totals = this.calculateHoursByRateType();
@@ -285,20 +306,22 @@ export class ReportsPageComponent implements OnInit {
     const canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
-    const ctx = canvas.getContext('2d');
+    try {
+      const ctx = canvas.getContext('2d');
 
-    if (!ctx) {
-      await AppSwal.fire({
-        title: 'No se pudo crear la imagen',
-        text: 'Probá exportar en PDF o intentá de nuevo.',
-        icon: 'error',
-        confirmButtonText: 'Aceptar'
-      });
-      return;
-    }
+      if (!ctx) {
+        closeProcessingAlert();
+        await AppSwal.fire({
+          title: 'No se pudo crear la imagen',
+          text: 'Probá exportar en PDF o intentá de nuevo.',
+          icon: 'error',
+          confirmButtonText: 'Aceptar'
+        });
+        return;
+      }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Logo local en esquina superior derecha.
     const logoPngDataUrl = await this.getLocalLogoDataUrl();
@@ -407,17 +430,27 @@ export class ReportsPageComponent implements OnInit {
     const fileName = `reporte-horas-${operatorName}-${reportLabel.replace(/\s+/g, '-').toLowerCase()}.${extension}`;
     const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
     const dataUrl = canvas.toDataURL(mimeType, 0.95);
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = fileName;
-    link.click();
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      link.click();
 
-    await AppSwal.fire({
-      title: 'Listo',
-      text: 'La imagen se descargó en tu carpeta de descargas.',
-      icon: 'success',
-      confirmButtonText: 'Aceptar'
-    });
+      closeProcessingAlert();
+      await AppSwal.fire({
+        title: 'Listo',
+        text: 'La imagen se descargó en tu carpeta de descargas.',
+        icon: 'success',
+        confirmButtonText: 'Aceptar'
+      });
+    } catch {
+      closeProcessingAlert();
+      await AppSwal.fire({
+        title: 'No se pudo exportar',
+        text: 'No pudimos generar la imagen. Probá de nuevo o exportá como PDF.',
+        icon: 'error',
+        confirmButtonText: 'Aceptar'
+      });
+    }
   }
 
   private async validateReportData(): Promise<boolean> {

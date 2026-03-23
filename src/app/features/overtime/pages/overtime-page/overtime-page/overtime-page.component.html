@@ -71,7 +71,9 @@
         <p class="error">{{ errorMessage }}</p>
       }
 
-      <button type="submit">{{ editingEntryId ? 'Guardar cambios' : 'Guardar registro' }}</button>
+      <button type="submit" [disabled]="savingEntry || deletingEntryId">
+        {{ savingEntry ? 'Guardando…' : editingEntryId ? 'Guardar cambios' : 'Guardar registro' }}
+      </button>
       @if (editingEntryId) {
         <button class="btn-secondary" type="button" (click)="cancelEdit()">Cancelar edición</button>
       }
@@ -133,12 +135,18 @@
                     class="btn-edit"
                     [class.btn-editing]="editingEntryId === entry.id"
                     type="button"
+                    [disabled]="savingEntry || !!deletingEntryId"
                     (click)="startEdit(entry)"
                   >
                     {{ editingEntryId === entry.id ? 'Editando...' : 'Editar' }}
                   </button>
-                  <button class="btn-delete" type="button" (click)="deleteEntry(entry.id)">
-                    Eliminar
+                  <button
+                    class="btn-delete"
+                    type="button"
+                    [disabled]="savingEntry || deletingEntryId === entry.id"
+                    (click)="deleteEntry(entry.id)"
+                  >
+                    {{ deletingEntryId === entry.id ? 'Borrando…' : 'Eliminar' }}
                   </button>
                 </td>
               </tr>
@@ -159,11 +167,19 @@
               class="btn-edit"
               [class.btn-editing]="editingEntryId === entry.id"
               type="button"
+              [disabled]="savingEntry || !!deletingEntryId"
               (click)="startEdit(entry)"
             >
               {{ editingEntryId === entry.id ? 'Editando...' : 'Editar' }}
             </button>
-            <button class="btn-delete" type="button" (click)="deleteEntry(entry.id)">Eliminar</button>
+            <button
+              class="btn-delete"
+              type="button"
+              [disabled]="savingEntry || deletingEntryId === entry.id"
+              (click)="deleteEntry(entry.id)"
+            >
+              {{ deletingEntryId === entry.id ? 'Borrando…' : 'Eliminar' }}
+            </button>
           </article>
         }
       </div>

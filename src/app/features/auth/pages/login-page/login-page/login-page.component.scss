@@ -72,6 +72,11 @@ p {
     background: linear-gradient(135deg, var(--ng-primary-bright), var(--ng-accent));
     box-shadow: 0 4px 18px rgb(45 212 191 / 28%);
   }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 }
 
 form {

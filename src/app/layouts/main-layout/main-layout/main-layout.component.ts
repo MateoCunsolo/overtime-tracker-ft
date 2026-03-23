@@ -12,6 +12,7 @@ import { ThemeToggleComponent } from '../../../shared/theme-toggle/theme-toggle.
 })
 export class MainLayoutComponent {
   isMobileMenuOpen = false;
+  logoutInProgress = false;
 
   constructor(
     private readonly authService: AuthService,
@@ -27,6 +28,8 @@ export class MainLayoutComponent {
   }
 
   logout(): void {
+    if (this.logoutInProgress) return;
+    this.logoutInProgress = true;
     this.closeMenu();
     this.authService.logout();
     void this.router.navigate(['/auth']);

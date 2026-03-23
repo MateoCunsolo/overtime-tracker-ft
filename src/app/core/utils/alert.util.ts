@@ -11,3 +11,19 @@ export const AppSwal = Swal.mixin({
     cancelButton: 'swal-btn swal-btn-cancel'
   }
 });
+
+export function showProcessingAlert(text: string, title = 'Procesando'): void {
+  void AppSwal.fire({
+    title,
+    text,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    didOpen: () => {
+      AppSwal.showLoading();
+    }
+  });
+}
+
+export function closeProcessingAlert(): void {
+  AppSwal.close();
+}

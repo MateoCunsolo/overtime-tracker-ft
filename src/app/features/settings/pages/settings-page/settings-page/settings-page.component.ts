@@ -10,7 +10,7 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
 import { RateConfigService } from '../../../../../core/services/rate-config.service';
-import { AppSwal } from '../../../../../core/utils/alert.util';
+import { AppSwal, closeProcessingAlert, showProcessingAlert } from '../../../../../core/utils/alert.util';
 import { getUserFacingErrorMessage } from '../../../../../core/utils/api-error.util';
 
 @Component({
@@ -22,6 +22,12 @@ import { getUserFacingErrorMessage } from '../../../../../core/utils/api-error.u
 export class SettingsPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   @ViewChild('backupInput') backupInput?: ElementRef<HTMLInputElement>;
+
+  savingProfile = false;
+  savingConfig = false;
+  savingRates = false;
+  exportingBackup = false;
+  endingSession = false;
 
   readonly categoryOrder: WorkerCategory[] = [
     'especial',
@@ -95,6 +101,9 @@ export class SettingsPageComponent implements OnInit {
   }
 
   async exportBackup(): Promise<void> {
+    if (this.exportingBackup) return;
+    this.exportingBackup = true;
+    showProcessingAlert('Preparando archivo de respaldo...');
     try {
       const entries = await firstValueFrom(this.overtimeService.fetchEntries());
       const profile = this.profileService.getProfile();
@@ -122,6 +131,7 @@ export class SettingsPageComponent implements OnInit {
       a.click();
       URL.revokeObjectURL(url);
 
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'Listo',
         text: 'El archivo de respaldo se descargó en tu carpeta de descargas.',
@@ -129,12 +139,15 @@ export class SettingsPageComponent implements OnInit {
         confirmButtonText: 'Aceptar'
       });
     } catch (err) {
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'No se pudo exportar',
         text: getUserFacingErrorMessage(err, 'No pudimos generar el archivo. Probá de nuevo.'),
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.exportingBackup = false;
     }
   }
 
@@ -165,26 +178,37 @@ export class SettingsPageComponent implements OnInit {
 
     if (!result.isConfirmed) return;
 
-    this.authService.logout();
-    localStorage.removeItem('ot_onboarding_dismissed');
+    if (this.endingSession) return;
+    this.endingSession = true;
+    showProcessingAlert('Cerrando sesión...');
+    try {
+      this.authService.logout();
+      localStorage.removeItem('ot_onboarding_dismissed');
+      closeProcessingAlert();
 
-    await AppSwal.fire({
-      title: 'Listo',
-      text: 'Saliste de tu cuenta.',
-      icon: 'success',
-      confirmButtonText: 'Aceptar'
-    });
+      await AppSwal.fire({
+        title: 'Listo',
+        text: 'Saliste de tu cuenta.',
+        icon: 'success',
+        confirmButtonText: 'Aceptar'
+      });
 
-    void this.router.navigate(['/auth']);
+      void this.router.navigate(['/auth']);
+    } finally {
+      this.endingSession = false;
+    }
   }
 
   async saveProfile(): Promise<void> {
+    if (this.savingProfile) return;
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
       return;
     }
 
+    this.savingProfile = true;
     const raw = this.profileForm.getRawValue();
+    showProcessingAlert('Guardando perfil...');
     try {
       await firstValueFrom(
         this.authService.updateProfile({
@@ -196,6 +220,7 @@ export class SettingsPageComponent implements OnInit {
         })
       );
 
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'Listo',
         text: 'Tu perfil se actualizó correctamente.',
@@ -203,16 +228,20 @@ export class SettingsPageComponent implements OnInit {
         confirmButtonText: 'Aceptar'
       });
     } catch (err) {
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'No se pudo guardar',
         text: getUserFacingErrorMessage(err, 'Revisá los datos e intentá otra vez.'),
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.savingProfile = false;
     }
   }
 
   async saveGeneralConfig(): Promise<void> {
+    if (this.savingConfig) return;
     if (!this.profileService.isAdmin()) {
       await AppSwal.fire({
         title: 'Solo administración',
@@ -230,6 +259,8 @@ export class SettingsPageComponent implements OnInit {
 
     const { cutoffDay } = this.configForm.getRawValue();
 
+    this.savingConfig = true;
+    showProcessingAlert('Guardando configuración...');
     try {
       await firstValueFrom(
         this.appSettingsService.saveSettings({
@@ -237,6 +268,7 @@ export class SettingsPageComponent implements OnInit {
         })
       );
 
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'Listo',
         text: 'El día de corte se guardó correctamente.',
@@ -244,16 +276,20 @@ export class SettingsPageComponent implements OnInit {
         confirmButtonText: 'Aceptar'
       });
     } catch (err) {
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'No se pudo guardar',
         text: getUserFacingErrorMessage(err, 'Probá de nuevo en un momento.'),
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.savingConfig = false;
     }
   }
 
   async saveRates(): Promise<void> {
+    if (this.savingRates) return;
     if (!this.profileService.isAdmin()) {
       await AppSwal.fire({
         title: 'Solo administración',
@@ -275,9 +311,12 @@ export class SettingsPageComponent implements OnInit {
       valorHora: Number(raw[categoria] ?? 0)
     }));
 
+    this.savingRates = true;
+    showProcessingAlert('Guardando valores por categoría...');
     try {
       await firstValueFrom(this.rateConfigService.saveRates(rates));
 
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'Listo',
         text: 'Los valores por categoría se guardaron correctamente.',
@@ -285,12 +324,15 @@ export class SettingsPageComponent implements OnInit {
         confirmButtonText: 'Aceptar'
       });
     } catch (err) {
+      closeProcessingAlert();
       await AppSwal.fire({
         title: 'No se pudo guardar',
         text: getUserFacingErrorMessage(err, 'Probá de nuevo en un momento.'),
         icon: 'error',
         confirmButtonText: 'Aceptar'
       });
+    } finally {
+      this.savingRates = false;
     }
   }
 
