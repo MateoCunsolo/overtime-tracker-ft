@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ProfileService } from '../../../core/services/profile.service';
+
+import { AuthService } from '../../../core/services/auth.service';
+import { ThemeToggleComponent } from '../../../shared/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss'
 })
@@ -12,7 +14,7 @@ export class MainLayoutComponent {
   isMobileMenuOpen = false;
 
   constructor(
-    private readonly profileService: ProfileService,
+    private readonly authService: AuthService,
     private readonly router: Router
   ) {}
 
@@ -26,7 +28,7 @@ export class MainLayoutComponent {
 
   logout(): void {
     this.closeMenu();
-    this.profileService.clearProfile();
+    this.authService.logout();
     void this.router.navigate(['/auth']);
   }
 }

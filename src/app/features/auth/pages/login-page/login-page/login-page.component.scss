@@ -1,23 +1,81 @@
+:host {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
 .page-shell {
-  width: min(420px, 100%);
+  width: min(440px, 100%);
+  padding: var(--ng-space-6);
+  border-radius: var(--ng-radius-xl);
   border: 1px solid var(--ng-border);
-  border-radius: var(--ng-radius-lg);
-  padding: var(--ng-space-5);
   background: var(--ng-surface);
-  box-shadow: var(--ng-shadow-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--ng-shadow-card), var(--ng-glass-highlight);
+}
+
+html[data-theme='dark'] .page-shell {
+  box-shadow:
+    var(--ng-shadow-card),
+    var(--ng-glass-highlight),
+    0 0 60px rgb(34 211 238 / 6%);
 }
 
 h2 {
   margin: 0;
-  font-size: var(--ng-title-size);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ng-text);
 }
 
 p {
   margin-top: var(--ng-space-2);
+  color: var(--ng-text-muted);
+  font-size: 0.95rem;
+}
+
+.auth-mode-toggle {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: var(--ng-space-5);
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: var(--ng-login-toggle-track);
+  border: 1px solid var(--ng-login-toggle-border);
+
+  button {
+    flex: 1;
+    margin-top: 0;
+    background: transparent;
+    color: var(--ng-login-toggle-inactive);
+    border: 0;
+    border-radius: 999px;
+    font-weight: 600;
+    font-family: var(--ng-font);
+    font-size: 0.88rem;
+    padding: 0.55rem 0.5rem;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  button.active {
+    color: var(--ng-login-toggle-active-fg);
+    background: linear-gradient(135deg, var(--ng-primary-bright), var(--ng-accent));
+    box-shadow: 0 4px 18px rgb(45 212 191 / 28%);
+  }
 }
 
 form {
-  margin-top: var(--ng-space-4);
+  margin-top: var(--ng-space-5);
   display: grid;
   gap: var(--ng-space-3);
 }
@@ -25,32 +83,82 @@ form {
 label {
   font-size: var(--ng-subtitle-size);
   color: var(--ng-text-muted);
+  font-weight: 500;
 }
 
 input,
 select {
   border: 1px solid var(--ng-border);
-  border-radius: var(--ng-radius-sm);
-  padding: 0.62rem 0.75rem;
+  border-radius: var(--ng-radius-md);
+  padding: 0.68rem 0.85rem;
+  background: var(--ng-input-bg);
+  color: var(--ng-input-fg);
+  font-family: var(--ng-font);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+input::placeholder {
+  color: var(--ng-input-placeholder);
+  opacity: 1;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--ng-border-strong);
+  box-shadow: 0 0 0 3px var(--ng-accent-soft);
 }
 
 .rate-preview {
   margin-top: 0.25rem;
-  color: var(--ng-text);
+  color: var(--ng-text-muted);
+  font-size: 0.9rem;
+}
+
+.rate-preview strong {
+  color: var(--ng-primary-bright);
+  font-weight: 600;
 }
 
 .field-error {
   color: var(--ng-danger);
   margin-top: -0.35rem;
+  font-size: 0.82rem;
 }
 
-button {
-  margin-top: var(--ng-space-2);
+.turno-reg-hint {
+  margin: calc(var(--ng-space-3) * -0.35) 0 0;
+  color: var(--ng-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+button[type='submit'] {
+  margin-top: var(--ng-space-3);
   border: 0;
-  border-radius: var(--ng-radius-sm);
-  background: var(--ng-primary);
+  border-radius: var(--ng-radius-md);
+  background: linear-gradient(135deg, var(--ng-primary-bright), var(--ng-accent));
   color: #fff;
-  padding: 0.72rem 1rem;
+  padding: 0.82rem 1rem;
   cursor: pointer;
   font-weight: 700;
+  font-family: var(--ng-font);
+  font-size: 0.95rem;
+  box-shadow: 0 10px 28px rgb(14 165 233 / 22%);
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+button[type='submit']:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 36px rgb(14 165 233 / 30%);
+}
+
+button[type='submit']:active {
+  transform: translateY(0);
 }

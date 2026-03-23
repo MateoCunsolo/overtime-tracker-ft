@@ -1,47 +1,111 @@
 <article class="page-shell">
-  <h2>Registro de usuario</h2>
-  <p>Completa tus datos para comenzar a cargar horas extra.</p>
+  <h2>{{ isLoginMode ? 'Iniciar sesión' : 'Crear cuenta' }}</h2>
+  <p>
+    {{
+      isLoginMode
+        ? 'Ingresá con tu email y contraseña para ver y cargar tus horas extras.'
+        : 'Creá tu cuenta para guardar tu perfil, valores y registros de horas extras.'
+    }}
+  </p>
 
-  <form [formGroup]="form" (ngSubmit)="register()">
-    <label for="nombre">Nombre</label>
-    <input id="nombre" type="text" formControlName="nombre" />
-    @if (nombreControl.touched && nombreControl.hasError('required')) {
-      <small class="field-error">El nombre es obligatorio.</small>
-    }
+  <div class="auth-mode-toggle">
+    <button type="button" [class.active]="isLoginMode" (click)="setMode(true)">Iniciar sesión</button>
+    <button type="button" [class.active]="!isLoginMode" (click)="setMode(false)">Registrarme</button>
+  </div>
 
-    <label for="apellido">Apellido</label>
-    <input id="apellido" type="text" formControlName="apellido" />
-    @if (apellidoControl.touched && apellidoControl.hasError('required')) {
-      <small class="field-error">El apellido es obligatorio.</small>
-    }
-
-    <label for="categoria">Categoria</label>
-    <select id="categoria" formControlName="categoria">
-      @for (cat of categorias; track cat.value) {
-        <option [value]="cat.value">{{ cat.label }}</option>
+  @if (isLoginMode) {
+    <form [formGroup]="loginForm" (ngSubmit)="submitLogin()">
+      <label for="login-email">Email</label>
+      <input id="login-email" type="email" autocomplete="email" formControlName="email" />
+      @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('required')) {
+        <small class="field-error">El email es obligatorio.</small>
       }
-    </select>
+      @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('email')) {
+        <small class="field-error">Email inválido.</small>
+      }
 
-    <label for="antiguedadAnios">Antigüedad (años)</label>
-    <input id="antiguedadAnios" type="number" min="0" max="50" formControlName="antiguedadAnios" />
-    @if (antiguedadControl.touched && antiguedadControl.hasError('required')) {
-      <small class="field-error">La antigüedad es obligatoria.</small>
-    }
-    @if (antiguedadControl.touched && antiguedadControl.hasError('min')) {
-      <small class="field-error">La antigüedad no puede ser negativa.</small>
-    }
-    @if (antiguedadControl.touched && antiguedadControl.hasError('max')) {
-      <small class="field-error">La antigüedad máxima permitida es 50 años.</small>
-    }
+      <label for="login-password">Contraseña</label>
+      <input id="login-password" type="password" autocomplete="current-password" formControlName="password" />
+      @if (loginForm.controls.password.touched && loginForm.controls.password.hasError('required')) {
+        <small class="field-error">La contraseña es obligatoria.</small>
+      }
+      @if (loginForm.controls.password.touched && loginForm.controls.password.hasError('minlength')) {
+        <small class="field-error">Mínimo 8 caracteres.</small>
+      }
 
-    <p class="rate-preview">
-      Valor hora base: <strong>{{ valorHoraSeleccionado | currency:'ARS':'symbol':'1.0-0' }}</strong>
-    </p>
-    <p class="rate-preview">
-      Valor hora con antigüedad:
-      <strong>{{ valorHoraConAntiguedadSeleccionada | currency:'ARS':'symbol':'1.0-0' }}</strong>
-    </p>
+      <button type="submit">Entrar</button>
+    </form>
+  } @else {
+    <form [formGroup]="registerForm" (ngSubmit)="submitRegister()">
+      <label for="reg-email">Email</label>
+      <input id="reg-email" type="email" autocomplete="email" formControlName="email" />
+      @if (registerForm.controls.email.touched && registerForm.controls.email.hasError('required')) {
+        <small class="field-error">El email es obligatorio.</small>
+      }
+      @if (registerForm.controls.email.touched && registerForm.controls.email.hasError('email')) {
+        <small class="field-error">Email inválido.</small>
+      }
 
-    <button type="submit">Registrarme</button>
-  </form>
+      <label for="reg-password">Contraseña</label>
+      <input id="reg-password" type="password" autocomplete="new-password" formControlName="password" />
+      @if (registerForm.controls.password.touched && registerForm.controls.password.hasError('required')) {
+        <small class="field-error">La contraseña es obligatoria.</small>
+      }
+      @if (registerForm.controls.password.touched && registerForm.controls.password.hasError('minlength')) {
+        <small class="field-error">Mínimo 8 caracteres.</small>
+      }
+
+      <label for="nombre">Nombre</label>
+      <input id="nombre" type="text" formControlName="nombre" />
+      @if (nombreControl.touched && nombreControl.hasError('required')) {
+        <small class="field-error">El nombre es obligatorio.</small>
+      }
+
+      <label for="apellido">Apellido</label>
+      <input id="apellido" type="text" formControlName="apellido" />
+      @if (apellidoControl.touched && apellidoControl.hasError('required')) {
+        <small class="field-error">El apellido es obligatorio.</small>
+      }
+
+      <label for="categoria">Categoria</label>
+      <select id="categoria" formControlName="categoria">
+        @for (cat of categorias; track cat.value) {
+          <option [value]="cat.value">{{ cat.label }}</option>
+        }
+      </select>
+
+      <label for="reg-turno">Turno laboral</label>
+      <select id="reg-turno" formControlName="workShift">
+        @for (t of turnos; track t.value) {
+          <option [value]="t.value">{{ t.label }}</option>
+        }
+      </select>
+      <p class="turno-reg-hint">
+        En días de semana (sin feriado) solo podrás cargar 1 a 4 horas extra dentro de esa franja.
+      </p>
+
+      <label for="antiguedadAnios">Antigüedad (años)</label>
+      <input id="antiguedadAnios" type="number" min="0" max="50" formControlName="antiguedadAnios" />
+      @if (antiguedadControl.touched && antiguedadControl.hasError('required')) {
+        <small class="field-error">La antigüedad es obligatoria.</small>
+      }
+      @if (antiguedadControl.touched && antiguedadControl.hasError('min')) {
+        <small class="field-error">La antigüedad no puede ser negativa.</small>
+      }
+      @if (antiguedadControl.touched && antiguedadControl.hasError('max')) {
+        <small class="field-error">La antigüedad máxima permitida es 50 años.</small>
+      }
+
+      <p class="rate-preview">
+        Valor hora base:
+        <strong>{{ valorHoraSeleccionado | currency:'ARS':'symbol':'1.0-0' }}</strong>
+      </p>
+      <p class="rate-preview">
+        Valor hora con antigüedad:
+        <strong>{{ valorHoraConAntiguedadSeleccionada | currency:'ARS':'symbol':'1.0-0' }}</strong>
+      </p>
+
+      <button type="submit">Crear cuenta</button>
+    </form>
+  }
 </article>

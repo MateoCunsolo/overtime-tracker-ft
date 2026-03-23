@@ -1,4 +1,9 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+import { environment } from '../../../environments/environment';
 
 export interface AppSettings {
   cutoffDay: number;
@@ -6,31 +11,42 @@ export interface AppSettings {
 
 @Injectable({ providedIn: 'root' })
 export class AppSettingsService {
-  private readonly settingsKey = 'ot_app_settings';
+  private readonly apiUrl = environment.apiUrl;
+  private readonly http = inject(HttpClient);
 
   private readonly defaults: AppSettings = {
-    cutoffDay: 23
+    cutoffDay: 24
   };
 
-  getSettings(): AppSettings {
-    const raw = localStorage.getItem(this.settingsKey);
-    if (!raw) return this.defaults;
+  private current: AppSettings = { ...this.defaults };
 
-    try {
-      const parsed = JSON.parse(raw) as Partial<AppSettings>;
-      return {
-        cutoffDay: this.clampCutoffDay(Number(parsed.cutoffDay ?? this.defaults.cutoffDay))
-      };
-    } catch {
-      return this.defaults;
-    }
+  getSettings(): AppSettings {
+    return { cutoffDay: this.clampCutoffDay(this.current.cutoffDay) };
   }
 
-  saveSettings(settings: AppSettings): void {
+  applyFromServer(settings: AppSettings | null | undefined): void {
+    if (!settings) {
+      this.current = { ...this.defaults };
+      return;
+    }
+    this.current = {
+      cutoffDay: this.clampCutoffDay(settings.cutoffDay)
+    };
+  }
+
+  resetToDefaults(): void {
+    this.current = { ...this.defaults };
+  }
+
+  saveSettings(settings: AppSettings): Observable<AppSettings> {
     const safe: AppSettings = {
       cutoffDay: this.clampCutoffDay(settings.cutoffDay)
     };
-    localStorage.setItem(this.settingsKey, JSON.stringify(safe));
+
+    return this.http.put<{ cutoffDay: number }>(`${this.apiUrl}/settings`, safe).pipe(
+      tap((res) => this.applyFromServer(res)),
+      map(() => this.getSettings())
+    );
   }
 
   private clampCutoffDay(day: number): number {

@@ -1,3 +1,8 @@
+export type UserRole = 'USER' | 'ADMIN';
+
+/** Turno: define ventana de horas extra en días de semana (lun–vie, sin feriado). */
+export type WorkShift = 'morning' | 'afternoon';
+
 export type WorkerCategory =
   | 'especial'
   | 'calificado'
@@ -10,6 +15,9 @@ export interface UserProfile {
   apellido: string;
   categoria: WorkerCategory;
   antiguedadAnios: number;
+  workShift: WorkShift;
+  /** Presente cuando la sesión viene de la API. */
+  email?: string;
 }
 
 export interface CategoryRate {

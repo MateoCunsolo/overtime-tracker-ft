@@ -2,70 +2,145 @@
   min-height: calc(100dvh - 108px);
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: var(--ng-space-4);
+  gap: var(--ng-space-5);
+  width: 100%;
 }
 
 .settings-head h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ng-text);
 }
 
 .settings-head p {
-  margin: 0.25rem 0 0;
+  margin: 0.35rem 0 0;
   color: var(--ng-text-muted);
+  font-size: 0.95rem;
+  max-width: 62ch;
+  line-height: 1.5;
 }
 
+/* Bento: perfil + corte arriba, tarifas ancho completo, respaldo + sesión abajo */
 .settings-shell {
   min-height: 0;
+  width: 100%;
+  max-width: 1040px;
+  margin-inline: auto;
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
   gap: var(--ng-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    'profile config'
+    'rates rates'
+    'backup session';
+  align-content: start;
 }
 
-.settings-col {
-  min-height: 0;
-  display: grid;
-  gap: var(--ng-space-4);
-  align-content: start;
+.card-profile {
+  grid-area: profile;
+}
+
+.card-config {
+  grid-area: config;
+}
+
+.card-rates {
+  grid-area: rates;
+}
+
+.card-backup {
+  grid-area: backup;
+}
+
+.card-session {
+  grid-area: session;
 }
 
 .card {
   border: 1px solid var(--ng-border);
   border-radius: var(--ng-radius-lg);
   background: var(--ng-surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   padding: var(--ng-space-5);
-  box-shadow: var(--ng-shadow-card);
-}
-
-.card-grow {
-  height: 100%;
+  box-shadow: var(--ng-shadow-card), var(--ng-glass-highlight);
 }
 
 h3 {
   margin: 0;
   font-size: var(--ng-title-size);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .card-subtitle {
   margin: var(--ng-space-2) 0 var(--ng-space-4);
   color: var(--ng-text-muted);
   font-size: var(--ng-subtitle-size);
+  line-height: 1.45;
 }
 
-.actions,
 .form-grid,
-.rates-grid,
-label {
+.rates-grid {
   display: grid;
   gap: var(--ng-space-3);
+  width: 100%;
+  min-width: 0;
 }
 
-.actions {
-  grid-template-columns: 1fr 1fr;
+/* Solo labels que envuelven el control (evita forzar grid en etiquetas sueltas de nombre/apellido) */
+.form-grid > label,
+.rates-grid > label {
+  display: grid;
+  gap: var(--ng-space-2);
+}
+
+.profile-name-row {
+  display: grid;
+  gap: var(--ng-space-3);
+  width: 100%;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  .profile-name-row {
+    /* minmax(0,1fr) evita que los inputs empujen la columna y se desborden a la derecha */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ng-space-4);
+    align-items: start;
+  }
+}
+
+.profile-field {
+  display: grid;
+  gap: var(--ng-space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profile-field label {
+  display: block;
+}
+
+.profile-field input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.backup-actions {
+  display: grid;
+  gap: var(--ng-space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .rates-grid {
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   align-items: end;
 }
 
@@ -73,52 +148,178 @@ label {
   grid-column: 1 / -1;
 }
 
-label {
-  gap: var(--ng-space-2);
+.form-grid > label,
+.rates-grid > label,
+.profile-field label {
   color: var(--ng-text);
   font-weight: 600;
+  font-size: var(--ng-subtitle-size);
 }
 
 input,
-textarea {
+textarea,
+select {
   border: 1px solid var(--ng-border);
-  border-radius: var(--ng-radius-sm);
-  background: #fff;
-  color: var(--ng-text);
-  padding: 0.62rem 0.72rem;
+  border-radius: var(--ng-radius-md);
+  background: var(--ng-input-bg);
+  color: var(--ng-input-fg);
+  padding: 0.65rem 0.8rem;
   font: inherit;
+  max-width: 100%;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Selectores y números a ancho completo dentro del formulario */
+.form-grid select,
+.form-grid input:not([type='checkbox']):not([type='radio']) {
+  width: 100%;
+  min-width: 0;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--ng-border-strong);
+  box-shadow: 0 0 0 3px var(--ng-accent-soft);
+}
+
+.profile-email {
+  margin: 0 0 var(--ng-space-3);
+  color: var(--ng-text-muted);
+  font-size: var(--ng-subtitle-size);
+}
+
+.profile-email strong {
+  color: var(--ng-text);
+}
+
+.field-error {
+  margin: -0.25rem 0 0;
+  color: var(--ng-danger);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.field-hint {
+  margin: calc(var(--ng-space-2) * -0.5) 0 var(--ng-space-2);
+  color: var(--ng-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.admin-only-hint {
+  margin: 0 0 var(--ng-space-3);
+  padding: var(--ng-space-3);
+  border-radius: var(--ng-radius-md);
+  background: linear-gradient(135deg, var(--ng-accent-soft), rgb(20 184 166 / 10%));
+  border: 1px solid var(--ng-border);
+  color: var(--ng-text-muted);
+  font-size: var(--ng-subtitle-size);
 }
 
 button {
   border: 0;
-  border-radius: var(--ng-radius-sm);
-  background: var(--ng-primary);
+  border-radius: var(--ng-radius-md);
+  background: linear-gradient(135deg, var(--ng-primary-bright), var(--ng-accent));
   color: #fff;
-  padding: 0.72rem 0.9rem;
+  padding: 0.75rem 0.95rem;
   font-weight: 700;
+  font-family: var(--ng-font);
   cursor: pointer;
+  box-shadow: 0 8px 22px rgb(13 148 136 / 18%);
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
 }
 
 .btn-secondary {
-  background: #e2ecea;
-  color: var(--ng-primary-dark);
+  background: var(--ng-surface-strong);
+  color: var(--ng-input-fg);
+  border: 1px solid var(--ng-border);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  font-weight: 600;
 }
 
-.danger-card {
-  border-color: #efb3b3;
+.btn-secondary:hover {
+  transform: translateY(-1px);
+  background: var(--ng-muted-bg);
+  border-color: var(--ng-border-strong);
+  filter: none;
 }
 
-.btn-danger {
-  background: #b91c1c;
+/* Cierre de sesión: misma familia cromática que el resto (sin bloque rojo) */
+.session-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ng-space-4);
 }
 
-@media (max-width: 1080px) {
-  .settings-page {
-    min-height: auto;
-  }
+.session-copy {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
 
+.card-session .card-subtitle {
+  margin-bottom: 0;
+}
+
+.session-lead {
+  max-width: 48ch;
+}
+
+.btn-session-leave {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-top: 0.15rem;
+  border-radius: 999px;
+  padding: 0.62rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: transparent;
+  color: var(--ng-text-muted);
+  border: 1px solid var(--ng-border);
+  box-shadow: none;
+}
+
+.btn-session-leave:hover {
+  color: var(--ng-text);
+  border-color: var(--ng-border-strong);
+  background: var(--ng-accent-soft);
+  box-shadow: 0 0 0 1px rgb(45 212 191 / 12%);
+  filter: none;
+}
+
+@media (max-width: 900px) {
   .settings-shell {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'profile'
+      'config'
+      'rates'
+      'backup'
+      'session';
+    max-width: 560px;
+  }
+
+  .session-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-session-leave {
+    width: 100%;
+    justify-self: stretch;
   }
 }
 
@@ -127,7 +328,7 @@ button {
     padding: var(--ng-space-4);
   }
 
-  .actions {
+  .backup-actions {
     grid-template-columns: 1fr;
   }
 

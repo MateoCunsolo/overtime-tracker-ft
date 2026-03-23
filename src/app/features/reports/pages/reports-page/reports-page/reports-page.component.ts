@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -9,6 +9,7 @@ import { AppSettingsService } from '../../../../../core/services/app-settings.se
 import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
 import { AppSwal } from '../../../../../core/utils/alert.util';
+import { getLoadFailureMessage, isUnauthorizedAfterLogout } from '../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-reports-page',
@@ -16,14 +17,18 @@ import { AppSwal } from '../../../../../core/utils/alert.util';
   templateUrl: './reports-page.component.html',
   styleUrl: './reports-page.component.scss'
 })
-export class ReportsPageComponent {
+export class ReportsPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
 
-  readonly profile: UserProfile | null;
-  readonly cutoffDay: number;
+  profile: UserProfile | null = null;
+  cutoffDay = 24;
   entries: OvertimeEntry[] = [];
   filteredEntries: OvertimeEntry[] = [];
+  /** Errores de validación del filtro (no confundir con fallo de red). */
   errorMessage = '';
+  entriesLoading = true;
+  entriesLoadError = false;
+  entriesLoadErrorMessage = '';
 
   readonly form = this.fb.group({
     modo: ['mes' as 'mes' | 'rango' | 'corte', [Validators.required]],
@@ -36,12 +41,41 @@ export class ReportsPageComponent {
     private readonly overtimeService: OvertimeService,
     private readonly profileService: ProfileService,
     private readonly appSettingsService: AppSettingsService
-  ) {
+  ) {}
+
+  ngOnInit(): void {
     this.profile = this.profileService.getProfile();
     this.cutoffDay = this.appSettingsService.getSettings().cutoffDay;
-    this.entries = this.overtimeService.getEntries();
     this.form.controls.mes.setValue(this.getCurrentMonthValue());
-    this.applyFilter();
+    this.loadEntries();
+  }
+
+  retryLoadEntries(): void {
+    this.entriesLoading = true;
+    this.entriesLoadError = false;
+    this.entriesLoadErrorMessage = '';
+    this.loadEntries();
+  }
+
+  private loadEntries(): void {
+    this.overtimeService.fetchEntries().subscribe({
+      next: (list) => {
+        this.entries = list;
+        this.entriesLoading = false;
+        this.entriesLoadError = false;
+        this.applyFilter();
+      },
+      error: (err: unknown) => {
+        this.entriesLoading = false;
+        if (isUnauthorizedAfterLogout(err)) {
+          return;
+        }
+        this.entries = [];
+        this.filteredEntries = [];
+        this.entriesLoadError = true;
+        this.entriesLoadErrorMessage = getLoadFailureMessage(err);
+      }
+    });
   }
 
   get totalFiltrado(): number {
@@ -55,6 +89,9 @@ export class ReportsPageComponent {
   }
 
   applyFilter(): void {
+    if (this.entriesLoadError || this.entriesLoading) {
+      return;
+    }
     this.errorMessage = '';
     const value = this.form.getRawValue();
     const mode = value.modo;
@@ -62,7 +99,7 @@ export class ReportsPageComponent {
     if (mode === 'mes') {
       if (!value.mes) {
         this.filteredEntries = [];
-        this.errorMessage = 'Selecciona un mes para filtrar.';
+        this.errorMessage = 'Elegí un mes para filtrar.';
         return;
       }
 
@@ -89,13 +126,13 @@ export class ReportsPageComponent {
 
     if (!value.fechaDesde || !value.fechaHasta) {
       this.filteredEntries = [];
-      this.errorMessage = 'Para rango personalizado debes completar desde y hasta.';
+      this.errorMessage = 'Indicá fecha desde y fecha hasta.';
       return;
     }
 
     if (value.fechaDesde > value.fechaHasta) {
       this.filteredEntries = [];
-      this.errorMessage = 'La fecha desde no puede ser mayor que la fecha hasta.';
+      this.errorMessage = 'La fecha “desde” no puede ser posterior a la fecha “hasta”.';
       return;
     }
 
@@ -107,8 +144,8 @@ export class ReportsPageComponent {
 
   async exportReport(): Promise<void> {
     const { isConfirmed, isDenied } = await AppSwal.fire({
-      title: 'Elegir formato de exportacion',
-      text: 'Selecciona en que formato quieres exportar el reporte.',
+      title: '¿Cómo querés exportar?',
+      text: 'Elegí el formato del reporte.',
       icon: 'question',
       showCancelButton: true,
       showDenyButton: true,
@@ -134,7 +171,7 @@ export class ReportsPageComponent {
     const reportLabel = this.getReportLabel();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.text('Reporte de Horas Extras', 40, 40);
 
     // Logo local en esquina superior derecha.
@@ -148,27 +185,32 @@ export class ReportsPageComponent {
       doc.addImage(logoPngDataUrl, 'PNG', x, 18, logoW, logoH);
     }
 
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
     doc.setFillColor(145, 255, 80);
-    doc.roundedRect(36, 48, 270, 18, 4, 4, 'F');
+    doc.roundedRect(36, 48, 335, 22, 4, 4, 'F');
     doc.setTextColor(20, 35, 20);
-    doc.text(operatorLine, 40, 60);
+    doc.text(operatorLine, 40, 63);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Categoria: ${this.profile?.categoria ?? '-'}`, 40, 75);
-    doc.text(`Periodo: ${reportLabel}`, 40, 90);
-    doc.text(`Registros: ${this.filteredEntries.length}`, 40, 105);
+    doc.text(`Categoria: ${this.profile?.categoria ?? '-'}`, 40, 83);
+    doc.text(`Periodo: ${reportLabel}`, 40, 101);
+    doc.text(`Registros: ${this.filteredEntries.length}`, 40, 119);
 
     autoTable(doc, {
-      startY: 125,
+      startY: 140,
       head: [['FECHA', 'PORCENTAJE DE PAGO', 'HORAS']],
       body: this.filteredEntries.map((entry) => [
         entry.fecha,
         this.getDayTypeLabel(entry),
         entry.horasExtra.toString()
       ]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [17, 24, 39] }
+      styles: { fontSize: 11, cellPadding: 4 },
+      headStyles: { fillColor: [17, 24, 39], fontSize: 12 },
+      columnStyles: {
+        0: { cellWidth: 120 },
+        1: { cellWidth: 190 },
+        2: { cellWidth: 82, halign: 'right' }
+      }
     });
 
     const totals = this.calculateHoursByRateType();
@@ -181,8 +223,8 @@ export class ReportsPageComponent {
         ['TOTAL HORAS TRABAJADAS AL 100%', totals.weekend.toFixed(2)],
         ['TOTAL HORAS TRABAJADAS FERIADOS', totals.holiday.toFixed(2)]
       ],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [107, 114, 128] },
+      styles: { fontSize: 11, cellPadding: 4 },
+      headStyles: { fillColor: [107, 114, 128], fontSize: 12 },
       columnStyles: {
         0: { cellWidth: 360 },
         1: { halign: 'right' }
@@ -195,7 +237,7 @@ export class ReportsPageComponent {
     });
 
     const pageHeight = doc.internal.pageSize.getHeight();
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setTextColor(107, 114, 128);
     doc.text('Herramienta desarrollada por Mateo Cunsolo', 40, pageHeight - 20);
     doc.setTextColor(0, 0, 0);
@@ -208,10 +250,10 @@ export class ReportsPageComponent {
     doc.save(fileName);
 
     await AppSwal.fire({
-      title: 'PDF generado',
-      text: `Archivo: ${fileName}`,
+      title: 'Listo',
+      text: 'El PDF se descargó en tu carpeta de descargas.',
       icon: 'success',
-      confirmButtonText: 'Entendido'
+      confirmButtonText: 'Aceptar'
     });
   }
 
@@ -223,11 +265,11 @@ export class ReportsPageComponent {
     const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
     const totals = this.calculateHoursByRateType();
     const rows = this.filteredEntries.length;
-    const canvasWidth = 1200;
-    const rowHeight = 34;
-    const baseHeight = 260;
+    const canvasWidth = 900;
+    const rowHeight = 46;
+    const baseHeight = 360;
     const summaryRowsCount = 3;
-    const summaryTitleHeight = 36;
+    const summaryTitleHeight = 42;
     const summaryRowsHeight = rowHeight * summaryRowsCount;
     const summarySpacingTop = 24;
     const summarySpacingBottom = 28;
@@ -247,10 +289,10 @@ export class ReportsPageComponent {
 
     if (!ctx) {
       await AppSwal.fire({
-        title: 'Error al exportar imagen',
-        text: 'No se pudo generar el archivo de imagen.',
+        title: 'No se pudo crear la imagen',
+        text: 'Probá exportar en PDF o intentá de nuevo.',
         icon: 'error',
-        confirmButtonText: 'Entendido'
+        confirmButtonText: 'Aceptar'
       });
       return;
     }
@@ -270,7 +312,7 @@ export class ReportsPageComponent {
         logoImg.onerror = () => resolve();
       });
 
-      const logoW = 200;
+      const logoW = 170;
       const logoH = (logoW * 30) / 206.22;
       const x = canvasWidth - logoW - 30;
       const y = 16;
@@ -278,51 +320,58 @@ export class ReportsPageComponent {
     }
 
     ctx.fillStyle = '#111827';
-    ctx.font = '700 32px Montserrat, sans-serif';
-    ctx.fillText('Reporte de Horas Extras', 45, 60);
+    ctx.font = '700 34px Montserrat, sans-serif';
+    ctx.fillText('Reporte de Horas Extras', 45, 62);
 
     ctx.fillStyle = '#91ff50';
-    ctx.fillRect(40, 78, 560, 36);
+    ctx.fillRect(40, 90, 820, 44);
     ctx.fillStyle = '#142314';
-    ctx.font = '600 22px Montserrat, sans-serif';
-    ctx.fillText(operatorLine, 50, 103);
+    ctx.font = '600 25px Montserrat, sans-serif';
+    ctx.fillText(operatorLine, 50, 120);
 
     ctx.fillStyle = '#111827';
-    ctx.font = '500 18px Montserrat, sans-serif';
-    ctx.fillText(`Categoria: ${this.profile?.categoria ?? '-'}`, 45, 138);
-    ctx.fillText(`Periodo: ${reportLabel}`, 45, 166);
-    ctx.fillText(`Registros: ${this.filteredEntries.length}`, 45, 194);
+    ctx.font = '500 20px Montserrat, sans-serif';
+    ctx.fillText(`Categoria: ${this.profile?.categoria ?? '-'}`, 45, 176);
+    ctx.fillText(`Periodo: ${reportLabel}`, 45, 206);
+    ctx.fillText(`Registros: ${this.filteredEntries.length}`, 45, 236);
 
-    const tableTop = 220;
+    const tableTop = 266;
+    const tableX = 40;
+    const tableWidth = canvasWidth - 80;
+    const dateX = tableX + 14;
+    const typeX = tableX + 250;
+    const hoursX = tableX + tableWidth - 118;
     ctx.fillStyle = '#111827';
-    ctx.fillRect(40, tableTop, 1120, 36);
+    ctx.fillRect(tableX, tableTop, tableWidth, 42);
     ctx.fillStyle = '#ffffff';
-    ctx.font = '700 16px Montserrat, sans-serif';
-    ctx.fillText('FECHA', 55, tableTop + 24);
-    ctx.fillText('PORCENTAJE DE PAGO', 300, tableTop + 24);
-    ctx.fillText('HORAS', 1080, tableTop + 24);
+    ctx.font = '700 17px Montserrat, sans-serif';
+    ctx.fillText('FECHA', dateX, tableTop + 28);
+    ctx.fillText('PORCENTAJE DE PAGO', typeX, tableTop + 28);
+    ctx.textAlign = 'right';
+    ctx.fillText('HORAS', hoursX, tableTop + 28);
+    ctx.textAlign = 'left';
 
     this.filteredEntries.forEach((entry, index) => {
-      const y = tableTop + 36 + rowHeight * index;
+      const y = tableTop + 42 + rowHeight * index;
       ctx.fillStyle = index % 2 === 0 ? '#f8fafc' : '#ffffff';
-      ctx.fillRect(40, y, 1120, rowHeight);
+      ctx.fillRect(tableX, y, tableWidth, rowHeight);
       ctx.fillStyle = '#111827';
-      ctx.font = '500 15px Montserrat, sans-serif';
-      ctx.fillText(entry.fecha, 55, y + 22);
-      ctx.fillText(this.getDayTypeLabel(entry), 300, y + 22);
+      ctx.font = '500 16px Montserrat, sans-serif';
+      ctx.fillText(entry.fecha, dateX, y + 30);
+      ctx.fillText(this.getDayTypeLabel(entry), typeX, y + 30);
       ctx.textAlign = 'right';
-      ctx.fillText(entry.horasExtra.toFixed(2), 1140, y + 22);
+      ctx.fillText(entry.horasExtra.toFixed(2), hoursX, y + 30);
       ctx.textAlign = 'left';
     });
 
-    const summaryTop = tableTop + 36 + rowHeight * rows + summarySpacingTop;
+    const summaryTop = tableTop + 42 + rowHeight * rows + summarySpacingTop;
     ctx.fillStyle = '#6b7280';
-    ctx.fillRect(40, summaryTop, 1120, 36);
+    ctx.fillRect(tableX, summaryTop, tableWidth, summaryTitleHeight);
     ctx.fillStyle = '#ffffff';
-    ctx.font = '700 16px Montserrat, sans-serif';
-    ctx.fillText('RESUMEN', 55, summaryTop + 24);
+    ctx.font = '700 17px Montserrat, sans-serif';
+    ctx.fillText('RESUMEN', dateX, summaryTop + 28);
     ctx.textAlign = 'right';
-    ctx.fillText('HORAS', 1140, summaryTop + 24);
+    ctx.fillText('HORAS', hoursX, summaryTop + 28);
     ctx.textAlign = 'left';
 
     const summaryRows = [
@@ -332,21 +381,21 @@ export class ReportsPageComponent {
     ];
 
     summaryRows.forEach((row, index) => {
-      const y = summaryTop + 36 + rowHeight * index;
+      const y = summaryTop + summaryTitleHeight + rowHeight * index;
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(40, y, 1120, rowHeight);
+      ctx.fillRect(tableX, y, tableWidth, rowHeight);
       ctx.strokeStyle = '#e5e7eb';
-      ctx.strokeRect(40, y, 1120, rowHeight);
+      ctx.strokeRect(tableX, y, tableWidth, rowHeight);
       ctx.fillStyle = '#111827';
-      ctx.font = '500 15px Montserrat, sans-serif';
-      ctx.fillText(row[0], 55, y + 22);
+      ctx.font = '500 16px Montserrat, sans-serif';
+      ctx.fillText(row[0], dateX, y + 30);
       ctx.textAlign = 'right';
-      ctx.fillText(row[1], 1140, y + 22);
+      ctx.fillText(row[1], hoursX, y + 30);
       ctx.textAlign = 'left';
     });
 
     ctx.fillStyle = '#6b7280';
-    ctx.font = '500 14px Montserrat, sans-serif';
+    ctx.font = '500 16px Montserrat, sans-serif';
     const footerY = summaryTop + summaryTitleHeight + summaryRowsHeight + summarySpacingBottom;
     ctx.fillText('Herramienta desarrollada por Mateo Cunsolo', 45, footerY);
 
@@ -364,10 +413,10 @@ export class ReportsPageComponent {
     link.click();
 
     await AppSwal.fire({
-      title: 'Imagen generada',
-      text: `Archivo: ${fileName}`,
+      title: 'Listo',
+      text: 'La imagen se descargó en tu carpeta de descargas.',
       icon: 'success',
-      confirmButtonText: 'Entendido'
+      confirmButtonText: 'Aceptar'
     });
   }
 
@@ -375,21 +424,21 @@ export class ReportsPageComponent {
     this.applyFilter();
     if (this.errorMessage) {
       await AppSwal.fire({
-        title: 'No se pudo generar el reporte',
+        title: 'Revisá las fechas',
         text: this.errorMessage,
         icon: 'warning',
-        confirmButtonText: 'Entendido'
+        confirmButtonText: 'Aceptar'
       });
       return false;
     }
 
     if (!this.filteredEntries.length) {
-      this.errorMessage = 'No hay horas extra para el periodo seleccionado.';
+      this.errorMessage = 'No hay registros en el período que elegiste.';
       await AppSwal.fire({
-        title: 'Sin datos',
+        title: 'No hay datos para mostrar',
         text: this.errorMessage,
         icon: 'info',
-        confirmButtonText: 'Entendido'
+        confirmButtonText: 'Aceptar'
       });
       return false;
     }

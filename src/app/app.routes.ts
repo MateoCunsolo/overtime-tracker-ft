@@ -40,8 +40,8 @@ export const routes: Routes = [
       },
       {
         path: 'employees',
-        loadChildren: () =>
-          import('./features/employees/employees.routes').then((m) => m.EMPLOYEES_ROUTES)
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
       },
       {
         path: 'reports',

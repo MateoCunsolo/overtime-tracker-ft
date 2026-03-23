@@ -1,35 +1,50 @@
 import { Injectable } from '@angular/core';
 
-import { UserProfile } from '../models/overtime.models';
+import { AuthMeResponse } from '../models/api.models';
+import { UserProfile, UserRole } from '../models/overtime.models';
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
-  private readonly profileKey = 'ot_profile';
+  private profile: UserProfile | null = null;
+  private role: UserRole = 'USER';
 
   getProfile(): UserProfile | null {
-    const raw = localStorage.getItem(this.profileKey);
-    if (!raw) return null;
+    return this.profile;
+  }
 
-    try {
-      const parsed = JSON.parse(raw) as Partial<UserProfile>;
-      if (!parsed.nombre || !parsed.apellido || !parsed.categoria) return null;
+  getRole(): UserRole {
+    return this.role;
+  }
 
-      return {
-        nombre: parsed.nombre,
-        apellido: parsed.apellido,
-        categoria: parsed.categoria,
-        antiguedadAnios: Number(parsed.antiguedadAnios ?? 0)
-      };
-    } catch {
-      return null;
+  isAdmin(): boolean {
+    return this.role === 'ADMIN';
+  }
+
+  hydrateFromMe(me: AuthMeResponse): void {
+    this.role = me.role === 'ADMIN' ? 'ADMIN' : 'USER';
+
+    if (!me.profile) {
+      this.profile = null;
+      return;
     }
+
+    this.profile = {
+      nombre: me.profile.nombre,
+      apellido: me.profile.apellido,
+      categoria: me.profile.categoria,
+      antiguedadAnios: me.profile.antiguedadAnios,
+      workShift: me.profile.workShift ?? 'morning',
+      email: me.email
+    };
   }
 
+  /** Compatibilidad: ya no persiste en localStorage; la fuente de verdad es la API. */
   saveProfile(profile: UserProfile): void {
-    localStorage.setItem(this.profileKey, JSON.stringify(profile));
+    this.profile = { ...profile };
   }
 
-  clearProfile(): void {
-    localStorage.removeItem(this.profileKey);
+  clear(): void {
+    this.profile = null;
+    this.role = 'USER';
   }
 }

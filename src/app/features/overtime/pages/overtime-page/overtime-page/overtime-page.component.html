@@ -1,6 +1,6 @@
 <section class="grid">
   <article class="card" #editFormCard [class.editing-glow]="showEditGlow || !!editingEntryId">
-    <h2>{{ editingEntryId ? 'Editar horas extra' : 'Cargar horas extra' }}</h2>
+    <h2>{{ editingEntryId ? 'Editar horas extras' : 'Cargar horas extras' }}</h2>
     <p class="card-subtitle">
       {{ editingEntryId ? 'Actualiza el registro seleccionado.' : 'Completa los datos del turno para guardar el registro.' }}
     </p>
@@ -21,6 +21,7 @@
 
     <form [formGroup]="form" (ngSubmit)="saveEntry()">
       @if (!isManualMode && !editingEntryId) {
+        <p class="shift-hint">{{ weekdayShiftHint }} Sábados, domingos y feriados: otras reglas.</p>
         <div class="quick-presets">
           @for (preset of quickPresets; track preset.label) {
             <button
@@ -36,6 +37,7 @@
       }
 
       @if (isManualMode || editingEntryId) {
+        <p class="shift-hint">{{ weekdayShiftHint }} Marcá feriado si corresponde.</p>
         <div class="field">
           <label for="fecha">Fecha</label>
           <input id="fecha" type="date" formControlName="fecha" />
@@ -102,7 +104,7 @@
     </form>
 
     @if (!filteredEntries.length) {
-      <p>Aun no cargaste horas extra.</p>
+      <p>Aun no cargaste horas extras.</p>
     } @else {
       <div class="table-wrap desktop-table">
         <table>

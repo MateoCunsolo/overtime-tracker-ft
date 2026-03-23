@@ -54,10 +54,10 @@ export class DataMigrationService {
 
     try {
       const parsed = JSON.parse(raw) as { cutoffDay?: unknown };
-      const safeCutoff = this.clampCutoffDay(Number(parsed.cutoffDay ?? 23));
+      const safeCutoff = this.clampCutoffDay(Number(parsed.cutoffDay ?? 24));
       localStorage.setItem(appSettingsKey, JSON.stringify({ cutoffDay: safeCutoff }));
     } catch {
-      localStorage.setItem(appSettingsKey, JSON.stringify({ cutoffDay: 23 }));
+      localStorage.setItem(appSettingsKey, JSON.stringify({ cutoffDay: 24 }));
     }
   }
 
@@ -66,7 +66,7 @@ export class DataMigrationService {
   }
 
   private clampCutoffDay(day: number): number {
-    if (Number.isNaN(day)) return 23;
+    if (Number.isNaN(day)) return 24;
     return Math.max(1, Math.min(28, Math.trunc(day)));
   }
 }

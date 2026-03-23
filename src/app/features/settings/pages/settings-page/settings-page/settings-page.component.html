@@ -1,53 +1,132 @@
 <section class="settings-page">
   <header class="settings-head">
     <h2>Ajustes</h2>
-    <p>Administra configuracion, valores y respaldo de datos.</p>
+    <p>Perfil, liquidación, tarifas y respaldo. Todo en un solo lugar.</p>
   </header>
 
   <div class="settings-shell">
-    <section class="settings-col">
-      <article class="card">
-        <h3>Configuracion general</h3>
-        <p class="card-subtitle">Define el dia de corte de liquidacion (1-28).</p>
+    <article class="card card-profile">
+      <h3>Perfil laboral</h3>
+        <p class="card-subtitle">
+        Nombre, apellido, categoría, turno y antigüedad se usan en cálculos y reportes. El turno define las horas extra
+        permitidas en días de semana. Los cambios se aplican al instante.
+      </p>
+      @if (profileEmail) {
+        <p class="profile-email"><strong>Correo:</strong> {{ profileEmail }}</p>
+      }
 
-        <form class="form-grid" [formGroup]="configForm" (ngSubmit)="saveGeneralConfig()">
-          <label>
-            Dia de corte
-            <input type="number" min="1" max="28" formControlName="cutoffDay" />
-          </label>
-          <button type="submit">Guardar configuracion</button>
-        </form>
-      </article>
-
-      <article class="card">
-        <h3>Respaldo de datos</h3>
-        <p class="card-subtitle">Exporta o restaura tus datos del navegador en formato JSON.</p>
-        <div class="actions">
-          <button type="button" (click)="exportBackup()">Exportar respaldo</button>
-          <button class="btn-secondary" type="button" (click)="openImportDialog()">Importar respaldo</button>
+      <form class="form-grid profile-form" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <div class="profile-name-row">
+          <div class="profile-field">
+            <label for="settings-nombre">Nombre</label>
+            <input id="settings-nombre" type="text" autocomplete="given-name" formControlName="nombre" />
+            @if (profileForm.controls.nombre.touched && profileForm.controls.nombre.hasError('required')) {
+              <small class="field-error">El nombre es obligatorio.</small>
+            }
+          </div>
+          <div class="profile-field">
+            <label for="settings-apellido">Apellido</label>
+            <input id="settings-apellido" type="text" autocomplete="family-name" formControlName="apellido" />
+            @if (profileForm.controls.apellido.touched && profileForm.controls.apellido.hasError('required')) {
+              <small class="field-error">El apellido es obligatorio.</small>
+            }
+          </div>
         </div>
-        <input #backupInput type="file" accept=".json,application/json" hidden (change)="importBackup($event)" />
-      </article>
 
-      <article class="card danger-card">
-        <h3>Reinicio total</h3>
-        <p class="card-subtitle">Borra perfil, horas extra y valores guardados para comenzar desde cero.</p>
-        <button class="btn-danger" type="button" (click)="resetData()">Reiniciar datos</button>
-      </article>
-    </section>
+        <label for="settings-categoria">Categoría</label>
+        <select id="settings-categoria" formControlName="categoria">
+          @for (cat of categorias; track cat.value) {
+            <option [value]="cat.value">{{ cat.label }}</option>
+          }
+        </select>
 
-    <section class="settings-col">
-      <article class="card card-grow">
-        <h3>Valores por categoria</h3>
-        <p class="card-subtitle">Edita el valor hora base en ARS para cada categoria.</p>
-        <form class="rates-grid" [formGroup]="ratesForm" (ngSubmit)="saveRates()">
-          <label *ngFor="let category of categoryOrder">
-            {{ categoryLabel(category) }}
-            <input type="number" min="1" [formControlName]="category" />
-          </label>
+        <label for="settings-turno">Turno laboral</label>
+        <select id="settings-turno" formControlName="workShift" aria-describedby="settings-turno-help">
+          @for (t of turnos; track t.value) {
+            <option [value]="t.value">{{ t.label }}</option>
+          }
+        </select>
+        <p id="settings-turno-help" class="field-hint">
+          Mañana: extras en semana entre 14:00 y 18:00. Tarde: entre 10:00 y 14:00. Siempre 1 a 4 horas completas.
+        </p>
+
+        <label for="settings-antiguedad">Antigüedad (años)</label>
+        <input id="settings-antiguedad" type="number" min="0" max="50" formControlName="antiguedadAnios" />
+        @if (profileForm.controls.antiguedadAnios.touched && profileForm.controls.antiguedadAnios.hasError('required')) {
+          <small class="field-error">La antigüedad es obligatoria.</small>
+        }
+        @if (profileForm.controls.antiguedadAnios.touched && profileForm.controls.antiguedadAnios.hasError('min')) {
+          <small class="field-error">La antigüedad no puede ser negativa.</small>
+        }
+        @if (profileForm.controls.antiguedadAnios.touched && profileForm.controls.antiguedadAnios.hasError('max')) {
+          <small class="field-error">La antigüedad máxima permitida es 50 años.</small>
+        }
+
+        <button type="submit">Guardar perfil</button>
+      </form>
+    </article>
+
+    <article class="card card-config">
+      <h3>Configuración general</h3>
+      <p class="card-subtitle">
+        El día de corte de liquidación (1–28) es único para toda la organización y solo puede cambiarlo un administrador.
+      </p>
+      @if (!isAdmin) {
+        <p class="admin-only-hint">Tu cuenta no tiene permisos de administrador: los valores se muestran solo lectura.</p>
+      }
+
+      <form class="form-grid" [formGroup]="configForm" (ngSubmit)="saveGeneralConfig()">
+        <label>
+          Día de corte
+          <input type="number" min="1" max="28" formControlName="cutoffDay" />
+        </label>
+        @if (isAdmin) {
+          <button type="submit">Guardar configuración</button>
+        }
+      </form>
+    </article>
+
+    <article class="card card-rates">
+      <h3>Valores por categoría</h3>
+      <p class="card-subtitle">
+        Valores hora base en ARS compartidos por todos los usuarios (fuente: base de datos). Solo un administrador puede
+        modificarlos.
+      </p>
+      @if (!isAdmin) {
+        <p class="admin-only-hint">Solo lectura: pedí el ajuste a quien administre la cuenta.</p>
+      }
+      <form class="rates-grid" [formGroup]="ratesForm" (ngSubmit)="saveRates()">
+        <label *ngFor="let category of categoryOrder">
+          {{ categoryLabel(category) }}
+          <input type="number" min="1" [formControlName]="category" />
+        </label>
+        @if (isAdmin) {
           <button type="submit">Guardar valores</button>
-        </form>
-      </article>
-    </section>
+        }
+      </form>
+    </article>
+
+    <article class="card card-backup">
+      <h3>Respaldo de datos</h3>
+      <p class="card-subtitle">Exportá un snapshot JSON de lo guardado en el servidor (perfil, tarifas, horas).</p>
+      <div class="backup-actions">
+        <button type="button" (click)="exportBackup()">Exportar respaldo</button>
+        <button class="btn-secondary" type="button" (click)="openImportDialog()">Importar respaldo</button>
+      </div>
+      <input #backupInput type="file" accept=".json,application/json" hidden (change)="importBackup($event)" />
+    </article>
+
+    <article class="card card-session" aria-labelledby="settings-session-title">
+      <div class="session-layout">
+        <div class="session-copy">
+          <h3 id="settings-session-title">Sesión en este dispositivo</h3>
+          <p class="card-subtitle session-lead">
+            Si usás una computadora compartida, conviene salir al terminar. Tus datos no se borran: podés volver a entrar
+            cuando quieras.
+          </p>
+        </div>
+        <button class="btn-session-leave" type="button" (click)="resetData()">Cerrar sesión</button>
+      </div>
+    </article>
   </div>
 </section>

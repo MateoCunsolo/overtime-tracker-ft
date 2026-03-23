@@ -1,6 +1,14 @@
 # Overtime Tracker (v1.0.0)
 
-Aplicacion Angular para que el operario lleve control personal de horas extra, calculos por tipo de dia y generacion de reportes PDF.
+Aplicacion Angular para que el operario lleve control personal de horas extras, calculos por tipo de dia y generacion de reportes PDF.
+
+## Backend (API)
+
+El backend NestJS vive **fuera** de esta carpeta, como proyecto hermano:
+
+- `../overtime-tracker-api/` — API (NestJS + Prisma, etc.)
+
+Así el frontend y la API quedan separados y cada uno con su propio `package.json`.
 
 ## Funcionalidades MVP
 
@@ -41,14 +49,19 @@ Salida: `dist/overtime-tracker`.
 
 ## Datos y almacenamiento
 
-Todo se guarda en `localStorage` del navegador.
+La app usa la **API** (`overtime-tracker-api`): perfil, tarifas, horas extras y ajustes se guardan en **PostgreSQL**. En el navegador solo queda el **token JWT** (`ot_access_token`) y preferencias locales (por ejemplo onboarding).
 
-Claves principales:
-- `ot_profile`
-- `ot_entries`
-- `ot_category_rates`
-- `ot_category_rates_version`
-- `ot_app_settings`
+- **Desarrollo (`ng serve`)**: `environment.ts` usa `apiUrl: '/api'`. El archivo `proxy.conf.json` reenvía eso a `http://localhost:3000` (mismo origen en el navegador, sin pelear con CORS).
+- **Producción**: `environment.prod.ts` — poné ahí la URL pública real de la API (ver `angular.json` → `fileReplacements`).
+
+### Arranque típico desarrollo
+
+1. Levantar Postgres + API (ver `../overtime-tracker-api/README.md`).
+2. `npm run start` en esta carpeta → `http://localhost:4200`.
+3. Registrarte o iniciar sesión en `/auth`.
+
+Claves legacy en `localStorage` (migraciones antiguas) pueden seguir existiendo pero **ya no son la fuente de verdad**:
+- `ot_profile`, `ot_entries`, `ot_category_rates`, etc.
 
 ## Checklist pre-release rapido
 

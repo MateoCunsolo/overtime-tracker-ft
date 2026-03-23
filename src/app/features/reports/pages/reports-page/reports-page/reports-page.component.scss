@@ -8,8 +8,27 @@
   border: 1px solid var(--ng-border);
   border-radius: var(--ng-radius-lg);
   background: var(--ng-surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   padding: var(--ng-space-5);
-  box-shadow: var(--ng-shadow-card);
+  box-shadow: var(--ng-shadow-card), var(--ng-glass-highlight);
+}
+
+.card-full {
+  grid-column: 1 / -1;
+}
+
+.btn-retry {
+  margin-top: var(--ng-space-3);
+  border: 0;
+  border-radius: var(--ng-radius-md);
+  background: linear-gradient(135deg, var(--ng-primary-bright), var(--ng-accent));
+  color: #fff;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  font-family: var(--ng-font);
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgb(13 148 136 / 18%);
 }
 
 h2 {
@@ -36,6 +55,8 @@ input[type='date'] {
   border: 1px solid var(--ng-border);
   border-radius: var(--ng-radius-sm);
   padding: 0.62rem 0.75rem;
+  background: var(--ng-input-bg);
+  color: var(--ng-input-fg);
 }
 
 .actions {
@@ -47,36 +68,42 @@ input[type='date'] {
 
 select {
   border: 1px solid var(--ng-border);
-  border-radius: var(--ng-radius-sm);
+  border-radius: var(--ng-radius-md);
   padding: 0.62rem 0.75rem;
-  background: #fff;
+  background: var(--ng-input-bg);
+  color: var(--ng-input-fg);
 }
 
 button {
   border: 0;
-  border-radius: var(--ng-radius-sm);
-  background: var(--ng-primary);
+  border-radius: var(--ng-radius-md);
+  background: linear-gradient(135deg, var(--ng-primary-bright), var(--ng-accent));
   color: #fff;
   padding: 0.72rem 0.95rem;
   cursor: pointer;
   font-weight: 700;
+  font-family: var(--ng-font);
   width: 100%;
-  transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    filter 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+  box-shadow: 0 8px 22px rgb(2 132 199 / 22%);
 }
 
 button:hover {
-  background: var(--ng-primary-dark);
-  box-shadow: 0 8px 16px rgb(15 118 110 / 24%);
+  filter: brightness(1.05);
+  box-shadow: 0 12px 28px rgb(2 132 199 / 28%);
   transform: translateY(-1px);
 }
 
 button:active {
   transform: translateY(0);
-  box-shadow: 0 3px 8px rgb(15 118 110 / 18%);
+  box-shadow: 0 4px 14px rgb(2 132 199 / 18%);
 }
 
 button:focus-visible {
-  outline: 2px solid #8bdbc8;
+  outline: 2px solid var(--ng-primary-bright);
   outline-offset: 2px;
 }
 

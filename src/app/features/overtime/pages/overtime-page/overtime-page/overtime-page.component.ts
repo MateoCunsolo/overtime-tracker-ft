@@ -1,10 +1,12 @@
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { OvertimeEntry } from '../../../../../core/models/overtime.models';
+import { firstValueFrom } from 'rxjs';
+import { OvertimeEntry, WorkShift } from '../../../../../core/models/overtime.models';
 import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
 import { AppSwal } from '../../../../../core/utils/alert.util';
+import { getLoadFailureMessage, getUserFacingErrorMessage, isUnauthorizedAfterLogout } from '../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-overtime-page',
@@ -62,21 +64,21 @@ export class OvertimePageComponent {
       this.form.markAllAsTouched();
       await AppSwal.fire({
         title: 'Faltan datos',
-        text: 'Completa fecha, hora de inicio y hora de fin para continuar.',
+        text: 'Indicá la fecha y el horario de inicio y fin.',
         icon: 'warning',
-        confirmButtonText: 'Entendido'
+        confirmButtonText: 'Aceptar'
       });
       return;
     }
 
     const profile = this.profileService.getProfile();
     if (!profile) {
-      this.errorMessage = 'Debes registrarte antes de cargar horas.';
+      this.errorMessage = 'Iniciá sesión para cargar horas.';
       await AppSwal.fire({
-        title: 'Perfil no encontrado',
+        title: 'Iniciá sesión',
         text: this.errorMessage,
         icon: 'warning',
-        confirmButtonText: 'Entendido'
+        confirmButtonText: 'Aceptar'
       });
       return;
     }
@@ -87,11 +89,11 @@ export class OvertimePageComponent {
     );
     if (duplicatedEntry) {
       const result = await AppSwal.fire({
-        title: 'Ya existe un registro en esa fecha',
-        text: 'No se puede guardar otro registro el mismo día. ¿Quieres editar el existente?',
+        title: 'Ya hay un registro ese día',
+        text: 'Solo podés tener un registro por fecha. ¿Querés editar el que ya está?',
         icon: 'info',
         showCancelButton: true,
-        confirmButtonText: 'Sí, editarlo',
+        confirmButtonText: 'Sí, editar',
         cancelButtonText: 'Cancelar'
       });
 
@@ -101,45 +103,42 @@ export class OvertimePageComponent {
       return;
     }
 
-    try {
-      const payload = {
-        fecha: value.fecha!,
-        horaInicio: value.horaInicio!,
-        horaFin: value.horaFin!,
-        esFeriadoNacional: Boolean(value.esFeriadoNacional),
-        observaciones: value.observaciones?.trim() ?? '',
-        categoriaUsuario: profile.categoria,
-        antiguedadAnios: profile.antiguedadAnios
-      };
+    const payload = {
+      fecha: value.fecha!,
+      horaInicio: value.horaInicio!,
+      horaFin: value.horaFin!,
+      esFeriadoNacional: Boolean(value.esFeriadoNacional),
+      observaciones: value.observaciones?.trim() ?? ''
+    };
 
-      const editingId = this.editingEntryId;
+    const editingId = this.editingEntryId;
+
+    try {
       if (editingId) {
-        this.overtimeService.updateEntry(editingId, payload);
+        await firstValueFrom(this.overtimeService.updateEntry(editingId, payload));
       } else {
-        this.overtimeService.createEntry(payload);
+        await firstValueFrom(this.overtimeService.createEntry(payload));
       }
 
       this.resetForm();
       this.reload();
       await AppSwal.fire({
-        title: editingId ? 'Registro actualizado' : 'Registro guardado',
-        text: editingId
-          ? 'La hora extra se actualizo correctamente.'
-          : 'La hora extra se guardo correctamente.',
+        title: 'Listo',
+        text: editingId ? 'Los cambios ya están guardados.' : 'El registro ya está guardado.',
         icon: 'success',
         timer: 1400,
         showConfirmButton: false
       });
     } catch (error) {
-      this.errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'No fue posible guardar el registro.';
+      this.errorMessage = getUserFacingErrorMessage(
+        error,
+        'No pudimos guardar. Revisá horarios, feriados y turno.'
+      );
       await AppSwal.fire({
         title: 'No se pudo guardar',
         text: this.errorMessage,
         icon: 'error',
-        confirmButtonText: 'Entendido'
+        confirmButtonText: 'Aceptar'
       });
     }
   }
@@ -195,30 +194,40 @@ export class OvertimePageComponent {
 
   async deleteEntry(id: string): Promise<void> {
     const result = await AppSwal.fire({
-      title: 'Eliminar registro',
-      text: 'Esta accion no se puede deshacer.',
+      title: '¿Borrar este registro?',
+      text: 'Esta acción no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       customClass: {
         confirmButton: 'swal-btn swal-btn-danger',
         cancelButton: 'swal-btn swal-btn-cancel'
       },
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonText: 'Sí, borrar',
       cancelButtonText: 'Cancelar'
     });
 
     if (!result.isConfirmed) return;
 
-    this.overtimeService.deleteEntry(id);
-    this.reload();
-    if (this.editingEntryId === id) this.resetForm();
+    try {
+      await firstValueFrom(this.overtimeService.deleteEntry(id));
+      this.reload();
+      if (this.editingEntryId === id) this.resetForm();
 
-    await AppSwal.fire({
-      title: 'Registro eliminado',
-      icon: 'success',
-      timer: 1400,
-      showConfirmButton: false
-    });
+      await AppSwal.fire({
+        title: 'Borrado',
+        text: 'El registro se eliminó.',
+        icon: 'success',
+        timer: 1400,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      await AppSwal.fire({
+        title: 'No se pudo borrar',
+        text: getUserFacingErrorMessage(error, 'Probá de nuevo en un momento.'),
+        icon: 'error',
+        confirmButtonText: 'Aceptar'
+      });
+    }
   }
 
   get dayTypeLabelMap(): Record<OvertimeEntry['tipoDia'], string> {
@@ -233,6 +242,16 @@ export class OvertimePageComponent {
     const day = new Date().getDay();
     if (day === 0) return [{ label: 'Hoy de 06:00 a 14:00', horaInicio: '06:00', horaFin: '14:00' }];
     if (day === 6) return [{ label: 'Hoy de 14:00 a 22:00', horaInicio: '14:00', horaFin: '22:00' }];
+
+    const shift: WorkShift = this.profileService.getProfile()?.workShift ?? 'morning';
+    if (shift === 'afternoon') {
+      return [
+        { label: 'Hoy de 10:00 a 11:00', horaInicio: '10:00', horaFin: '11:00' },
+        { label: 'Hoy de 10:00 a 12:00', horaInicio: '10:00', horaFin: '12:00' },
+        { label: 'Hoy de 10:00 a 13:00', horaInicio: '10:00', horaFin: '13:00' },
+        { label: 'Hoy de 10:00 a 14:00', horaInicio: '10:00', horaFin: '14:00' }
+      ];
+    }
     return [
       { label: 'Hoy de 14:00 a 15:00', horaInicio: '14:00', horaFin: '15:00' },
       { label: 'Hoy de 14:00 a 16:00', horaInicio: '14:00', horaFin: '16:00' },
@@ -241,8 +260,32 @@ export class OvertimePageComponent {
     ];
   }
 
+  /** Ayuda para carga manual: feriados y fines de semana no usan esta ventana. */
+  get weekdayShiftHint(): string {
+    const shift = this.profileService.getProfile()?.workShift ?? 'morning';
+    if (shift === 'afternoon') {
+      return 'Turno tarde: en días de semana (sin feriado), horas extra entre 10:00 y 14:00, de 1 a 4 h completas.';
+    }
+    return 'Turno mañana: en días de semana (sin feriado), horas extra entre 14:00 y 18:00, de 1 a 4 h completas.';
+  }
+
   private reload(): void {
-    this.entries = this.overtimeService.getEntries();
+    this.overtimeService.fetchEntries().subscribe({
+      next: (list) => {
+        this.entries = list;
+      },
+      error: async (err: unknown) => {
+        if (isUnauthorizedAfterLogout(err)) {
+          return;
+        }
+        await AppSwal.fire({
+          title: 'No se pudo cargar el listado',
+          text: getLoadFailureMessage(err),
+          icon: 'error',
+          confirmButtonText: 'Aceptar'
+        });
+      }
+    });
   }
 
   private resetForm(): void {

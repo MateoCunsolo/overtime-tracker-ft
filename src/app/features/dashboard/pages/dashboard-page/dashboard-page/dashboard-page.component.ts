@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AppSettingsService } from '../../../../../core/services/app-settings.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
 import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { OvertimeEntry, UserProfile } from '../../../../../core/models/overtime.models';
+import { getLoadFailureMessage, isUnauthorizedAfterLogout } from '../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -12,33 +13,79 @@ import { OvertimeEntry, UserProfile } from '../../../../../core/models/overtime.
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.scss'
 })
-export class DashboardPageComponent {
+export class DashboardPageComponent implements OnInit {
   private readonly onboardingDismissedKey = 'ot_onboarding_dismissed';
-  readonly profile: UserProfile | null;
-  readonly totalGanado: number;
-  readonly totalHorasMesLiquidacion: number;
-  readonly totalGanadoMesLiquidacion: number;
-  readonly horas50: number;
-  readonly horas100: number;
-  readonly horasFeriado: number;
-  readonly ultimoRegistroFecha: string;
-  readonly periodoLiquidacion: string;
-  readonly fechaPagoEstimada: string;
-  readonly cutoffDay: number;
-  showOnboarding: boolean;
+  profile: UserProfile | null = null;
+  totalGanado = 0;
+  totalHorasMesLiquidacion = 0;
+  totalGanadoMesLiquidacion = 0;
+  horas50 = 0;
+  horas100 = 0;
+  horasFeriado = 0;
+  ultimoRegistroFecha = '-';
+  periodoLiquidacion = '';
+  fechaPagoEstimada = '';
+  cutoffDay = 24;
+  showOnboarding = false;
+  loading = true;
+  loadError = false;
+  loadErrorMessage = '';
 
   constructor(
     private readonly profileService: ProfileService,
     private readonly overtimeService: OvertimeService,
     private readonly appSettingsService: AppSettingsService
-  ) {
-    const entries = this.overtimeService.getEntries();
+  ) {}
+
+  ngOnInit(): void {
+    this.profile = this.profileService.getProfile();
+    this.cutoffDay = this.appSettingsService.getSettings().cutoffDay;
+    this.showOnboarding = localStorage.getItem(this.onboardingDismissedKey) !== '1';
+    this.fetchEntries();
+  }
+
+  retry(): void {
+    this.loading = true;
+    this.loadError = false;
+    this.loadErrorMessage = '';
+    this.fetchEntries();
+  }
+
+  dismissOnboarding(): void {
+    this.showOnboarding = false;
+    localStorage.setItem(this.onboardingDismissedKey, '1');
+  }
+
+  /** Multiplicador aplicado al valor hora por antigüedad (regla: 1 + años/100). */
+  get antiguedadMultiplier(): number {
+    const y = this.profile?.antiguedadAnios ?? 0;
+    return 1 + Math.max(0, y) / 100;
+  }
+
+  private fetchEntries(): void {
+    this.overtimeService.fetchEntries().subscribe({
+      next: (entries) => {
+        this.applyEntries(entries);
+        this.loading = false;
+        this.loadError = false;
+      },
+      error: (err: unknown) => {
+        this.loading = false;
+        if (isUnauthorizedAfterLogout(err)) {
+          return;
+        }
+        this.loadError = true;
+        this.loadErrorMessage = getLoadFailureMessage(err);
+      }
+    });
+  }
+
+  private applyEntries(entries: OvertimeEntry[]): void {
     this.cutoffDay = this.appSettingsService.getSettings().cutoffDay;
     const period = this.getLiquidationPeriodForCurrentMonth(this.cutoffDay);
     const periodEntries = this.filterEntriesByRange(entries, period.start, period.end);
 
-    this.profile = this.profileService.getProfile();
-    this.totalGanado = this.overtimeService.getTotalGanado();
+    this.totalGanado = this.overtimeService.getTotalGanado(entries);
     this.totalHorasMesLiquidacion = this.sumHours(periodEntries);
     this.totalGanadoMesLiquidacion = this.sumAmount(periodEntries);
     this.horas50 = this.sumHoursByType(periodEntries, 'weekday');
@@ -47,12 +94,6 @@ export class DashboardPageComponent {
     this.ultimoRegistroFecha = entries.length ? entries[0].fecha : '-';
     this.periodoLiquidacion = `${this.formatDate(period.start)} al ${this.formatDate(period.end)}`;
     this.fechaPagoEstimada = this.formatDate(this.getFourthBusinessDayOfNextMonth(period.end));
-    this.showOnboarding = localStorage.getItem(this.onboardingDismissedKey) !== '1';
-  }
-
-  dismissOnboarding(): void {
-    this.showOnboarding = false;
-    localStorage.setItem(this.onboardingDismissedKey, '1');
   }
 
   private getLiquidationPeriodForCurrentMonth(cutoffDay: number): { start: Date; end: Date } {

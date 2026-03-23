@@ -1,35 +1,42 @@
 <header class="main-header">
-  <div class="brand-wrap">
-    <button
-      class="burger-btn"
-      [class.is-open]="isMobileMenuOpen"
-      type="button"
-      [attr.aria-label]="isMobileMenuOpen ? 'Cerrar menu' : 'Abrir menu'"
-      [attr.aria-expanded]="isMobileMenuOpen"
-      (click)="toggleMobileMenu()"
-    >
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
-    <a class="brand-link" routerLink="/dashboard" (click)="closeMenu()">
-      <h1>Overtime Tracker</h1>
-    </a>
-  </div>
-
-  <nav [class.nav-open]="isMobileMenuOpen">
-    <div class="menu-head">
-      <p class="menu-project-title">Overtime Tracker</p>
-      <button class="menu-close-btn" type="button" aria-label="Cerrar menu" (click)="closeMenu()">
-        ×
+  <div class="header-inner">
+    <div class="brand-wrap">
+      <button
+        class="burger-btn"
+        [class.is-open]="isMobileMenuOpen"
+        type="button"
+        [attr.aria-label]="isMobileMenuOpen ? 'Cerrar menu' : 'Abrir menu'"
+        [attr.aria-expanded]="isMobileMenuOpen"
+        (click)="toggleMobileMenu()"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
       </button>
+      <a class="brand-link" routerLink="/dashboard" (click)="closeMenu()">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div class="brand-text">
+          <span class="brand-title">Overtime</span>
+          <span class="brand-sub">Tracker</span>
+        </div>
+      </a>
     </div>
-    <a routerLink="/dashboard" routerLinkActive="active-link" (click)="closeMenu()">Inicio</a>
-    <a routerLink="/overtime" routerLinkActive="active-link" (click)="closeMenu()">Horas extra</a>
-    <a routerLink="/reports" routerLinkActive="active-link" (click)="closeMenu()">Reportes</a>
-    <a routerLink="/settings" routerLinkActive="active-link" (click)="closeMenu()">Ajustes</a>
-    <button type="button" (click)="logout()">Salir</button>
-  </nav>
+
+    <nav [class.nav-open]="isMobileMenuOpen">
+      <div class="menu-head">
+        <p class="menu-project-title">Overtime Tracker</p>
+        <button class="menu-close-btn" type="button" aria-label="Cerrar menu" (click)="closeMenu()">×</button>
+      </div>
+      <div class="nav-links">
+        <a routerLink="/dashboard" routerLinkActive="active-link" (click)="closeMenu()">Inicio</a>
+        <a routerLink="/overtime" routerLinkActive="active-link" (click)="closeMenu()">Horas extras</a>
+        <a routerLink="/reports" routerLinkActive="active-link" (click)="closeMenu()">Reportes</a>
+        <a routerLink="/settings" routerLinkActive="active-link" (click)="closeMenu()">Ajustes</a>
+      </div>
+      <app-theme-toggle class="nav-theme-toggle" />
+      <button class="btn-logout" type="button" (click)="logout()">Salir</button>
+    </nav>
+  </div>
 </header>
 
 @if (isMobileMenuOpen) {
@@ -37,5 +44,7 @@
 }
 
 <main class="main-content">
-  <router-outlet />
+  <div class="main-content-inner">
+    <router-outlet />
+  </div>
 </main>

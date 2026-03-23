@@ -1,52 +1,110 @@
-<section class="dashboard-grid">
-  @if (showOnboarding) {
-    <article class="card onboarding-card card-full">
-      <h2>Inicio rápido</h2>
-      <p>Sigue estos pasos para usar la app en menos de un minuto.</p>
-      <ol>
-        <li>Carga tus horas extra desde <strong>Horas extra</strong>.</li>
-        <li>Revisa tu período de liquidación del día {{ cutoffDay }} al día {{ cutoffDay }}.</li>
-        <li>Genera el PDF desde <strong>Reportes</strong> con el filtro que prefieras.</li>
-      </ol>
-      <button type="button" (click)="dismissOnboarding()">Entendido</button>
+<section class="dashboard">
+  @if (loading) {
+    <article class="card card-full state-card">
+      <h2>Cargando resumen…</h2>
+      <p>Un momento, estamos cargando tus horas extras…</p>
     </article>
-  }
-
-  <article class="card">
-    <h2>Tu perfil</h2>
-    @if (profile) {
-      <p><strong>Nombre:</strong> {{ profile.nombre }} {{ profile.apellido }}</p>
-      <p><strong>Categoria:</strong> {{ profile.categoria }}</p>
-      <p><strong>Antigüedad:</strong> {{ profile.antiguedadAnios }} años ({{ profile.antiguedadAnios }}%)</p>
+  } @else if (loadError) {
+    <article class="card card-full state-card">
+      <h2>No se pudo cargar el resumen</h2>
+      <p>{{ loadErrorMessage }}</p>
+      <button type="button" class="btn-retry" (click)="retry()">Reintentar</button>
+    </article>
+  } @else {
+    @if (showOnboarding) {
+      <article class="card onboarding-card card-full">
+        <div class="onboarding-head">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          <h2>Inicio rápido</h2>
+        </div>
+        <p class="onboarding-lead">Tres pasos para tener todo listo en menos de un minuto.</p>
+        <ol>
+          <li>Carga tus horas extras desde <strong>Horas extras</strong>.</li>
+          <li>Revisa tu período de liquidación del día {{ cutoffDay }} al día {{ cutoffDay }}.</li>
+          <li>Genera el PDF desde <strong>Reportes</strong> con el filtro que prefieras.</li>
+        </ol>
+        <button type="button" class="btn-onboarding" (click)="dismissOnboarding()">Entendido</button>
+      </article>
     }
-    <p><strong>Total acumulado:</strong> {{ totalGanado | currency:'ARS':'symbol':'1.0-0' }}</p>
-    <a routerLink="/overtime">Cargar horas extra</a>
-  </article>
 
-  <article class="card">
-    <h2>Resumen rápido</h2>
-    <p><strong>Período ({{ cutoffDay }} a {{ cutoffDay }}):</strong> {{ periodoLiquidacion }}</p>
-    <p><strong>Horas del período:</strong> {{ totalHorasMesLiquidacion }}</p>
-    <p><strong>Total del período:</strong> {{ totalGanadoMesLiquidacion | currency:'ARS':'symbol':'1.0-0' }}</p>
-    <p><strong>Pago estimado:</strong> {{ fechaPagoEstimada }} (4° día hábil)</p>
-    <p><strong>Última carga:</strong> {{ ultimoRegistroFecha }}</p>
-  </article>
+    <div class="dash-metrics">
+      <article class="metric-card metric-total">
+        <span class="metric-label">Total acumulado</span>
+        <strong class="metric-value">{{ totalGanado | currency: 'ARS' : 'symbol' : '1.0-0' }}</strong>
+        <span class="metric-hint">Todo tu histórico</span>
+      </article>
+      <article class="metric-card metric-hours">
+        <span class="metric-label">Horas del período</span>
+        <strong class="metric-value">{{ totalHorasMesLiquidacion }}</strong>
+        <span class="metric-hint">Corte día {{ cutoffDay }}</span>
+      </article>
+      <article class="metric-card metric-period">
+        <span class="metric-label">Total del período</span>
+        <strong class="metric-value">{{ totalGanadoMesLiquidacion | currency: 'ARS' : 'symbol' : '1.0-0' }}</strong>
+        <span class="metric-hint">{{ periodoLiquidacion }}</span>
+      </article>
+    </div>
 
-  <article class="card card-full">
-    <h2>Distribución de horas (período {{ cutoffDay }} a {{ cutoffDay }})</h2>
-    <ul>
-      <li>Horas al 50% (días de semana): {{ horas50 }}</li>
-      <li>Horas al 100% (sábado/domingo): {{ horas100 }}</li>
-      <li>Horas feriado (+65%): {{ horasFeriado }}</li>
-    </ul>
-  </article>
+    <div class="dash-grid">
+      <article class="card card-profile">
+        <h2>Tu perfil</h2>
+        @if (profile) {
+          @if (profile.email) {
+            <p><strong>Email</strong><span class="value">{{ profile.email }}</span></p>
+          }
+          <p><strong>Nombre</strong><span class="value">{{ profile.nombre }} {{ profile.apellido }}</span></p>
+          <p><strong>Categoría</strong><span class="value">{{ profile.categoria }}</span></p>
+          <p>
+            <strong>Antigüedad</strong>
+            <span class="value"
+              >{{ profile.antiguedadAnios }} años · ×{{ antiguedadMultiplier | number: '1.2-2' }}
+              <span class="muted">(1 + {{ profile.antiguedadAnios }}%)</span></span
+            >
+          </p>
+        }
+        <a class="link-cta" routerLink="/overtime">Cargar horas extras →</a>
+      </article>
+
+      <article class="card card-summary">
+        <h2>Resumen del período</h2>
+        <p><strong>Liquidación</strong><span class="value">{{ periodoLiquidacion }}</span></p>
+        <p><strong>Pago estimado</strong><span class="value">{{ fechaPagoEstimada }} (4° hábil)</span></p>
+        <p><strong>Última carga</strong><span class="value">{{ ultimoRegistroFecha }}</span></p>
+      </article>
+
+      <article class="card card-full card-distribution">
+        <h2>Distribución de horas</h2>
+        <p class="card-lead">Período con corte día {{ cutoffDay }}.</p>
+        <ul class="dist-list">
+          <li>
+            <span class="dist-pill dist-50">50%</span>
+            <span>Días de semana</span>
+            <strong>{{ horas50 }}</strong>
+          </li>
+          <li>
+            <span class="dist-pill dist-100">100%</span>
+            <span>Sábado / domingo</span>
+            <strong>{{ horas100 }}</strong>
+          </li>
+          <li>
+            <span class="dist-pill dist-f">+65%</span>
+            <span>Feriados</span>
+            <strong>{{ horasFeriado }}</strong>
+          </li>
+        </ul>
+      </article>
+    </div>
+  }
 </section>
 
-<a
-  class="fab-overtime"
-  routerLink="/overtime"
-  aria-label="Cargar horas extra"
-  title="Cargar horas extra"
->
-  + Horas extra
-</a>
+@if (!loading && !loadError) {
+  <a
+    class="fab-overtime"
+    routerLink="/overtime"
+    aria-label="Cargar horas extras"
+    title="Cargar horas extras"
+  >
+    <span class="fab-icon">+</span>
+    Horas extras
+  </a>
+}

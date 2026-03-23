@@ -6,10 +6,12 @@
 
 .card {
   border: 1px solid var(--ng-border);
-  border-radius: 0.9rem;
+  border-radius: var(--ng-radius-lg);
   padding: var(--ng-space-5);
   background: var(--ng-surface);
-  box-shadow: var(--ng-shadow-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--ng-shadow-card), var(--ng-glass-highlight);
 }
 
 .editing-glow {
@@ -47,6 +49,17 @@ h2 {
   font-size: var(--ng-subtitle-size);
 }
 
+.shift-hint {
+  margin: 0 0 var(--ng-space-3);
+  padding: var(--ng-space-3);
+  border-radius: var(--ng-radius-md);
+  border: 1px solid var(--ng-border);
+  background: var(--ng-muted-bg);
+  color: var(--ng-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 form {
   display: grid;
   gap: var(--ng-space-3);
@@ -60,15 +73,15 @@ form {
 }
 
 .mode-btn {
-  background: #eef4f3;
-  color: #49635f;
-  border-color: #d7e5e2;
+  background: var(--ng-muted-bg);
+  color: var(--ng-text-muted);
+  border: 1px solid var(--ng-border);
 }
 
 .mode-btn-active {
-  background: #d9efea;
-  color: #1f514a;
-  border-color: #a8ccc4;
+  background: linear-gradient(135deg, rgb(20 184 166 / 18%), rgb(2 132 199 / 12%));
+  color: var(--ng-primary-dark);
+  border: 1px solid var(--ng-border-strong);
 }
 
 .quick-presets {
@@ -78,17 +91,17 @@ form {
 }
 
 .btn-preset {
-  background: #f4f9f8;
-  color: #325d57;
-  border-color: #d2e4df;
+  background: var(--ng-input-bg);
+  color: var(--ng-text-muted);
+  border: 1px solid var(--ng-border);
   text-align: left;
   font-weight: 500;
 }
 
 .btn-preset-active {
-  background: #def3ee;
-  color: #1d4f47;
-  border-color: #89b9af;
+  background: var(--ng-muted-bg);
+  color: var(--ng-primary-dark);
+  border: 1px solid var(--ng-border-strong);
 }
 
 .field {
@@ -98,7 +111,7 @@ form {
 
 label {
   font-weight: 600;
-  color: #334155;
+  color: var(--ng-text-muted);
   font-size: var(--ng-subtitle-size);
 }
 
@@ -106,9 +119,16 @@ input,
 textarea,
 select {
   border: 1px solid var(--ng-border);
-  border-radius: var(--ng-radius-sm);
+  border-radius: var(--ng-radius-md);
   padding: 0.62rem 0.75rem;
-  background: #fbfdfc;
+  background: var(--ng-input-bg);
+  color: var(--ng-input-fg);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ng-input-placeholder);
+  opacity: 1;
 }
 
 textarea {
@@ -126,7 +146,7 @@ textarea {
   border: 1px dashed var(--ng-border);
   border-radius: var(--ng-radius-sm);
   padding: var(--ng-space-2) var(--ng-space-3);
-  background: #f7fbfa;
+  background: var(--ng-muted-bg);
 }
 
 .checkbox {
@@ -139,14 +159,19 @@ textarea {
 
 button {
   border: 1px solid transparent;
-  border-radius: var(--ng-radius-sm);
-  background: var(--ng-primary);
+  border-radius: var(--ng-radius-md);
+  background: linear-gradient(135deg, var(--ng-primary-bright), var(--ng-accent));
   color: #fff;
   padding: 0.58rem 0.72rem;
   font-weight: 600;
   font-size: 0.9rem;
+  font-family: var(--ng-font);
   cursor: pointer;
-  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  transition:
+    filter 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
 button:hover {
@@ -168,9 +193,9 @@ button:active {
 }
 
 .btn-edit {
-  background: #e8f4f2;
-  color: #245f58;
-  border-color: #cfe3df;
+  background: var(--ng-accent-soft);
+  color: var(--ng-accent);
+  border: 1px solid var(--ng-border);
   margin-right: 0.35rem;
 }
 
@@ -200,7 +225,7 @@ button:active {
   border: 1px solid var(--ng-border);
   border-radius: var(--ng-radius-md);
   padding: var(--ng-space-3);
-  background: #f8fbfa;
+  background: var(--ng-muted-bg);
 }
 
 .table-wrap {
@@ -239,7 +264,7 @@ th {
   border: 1px solid var(--ng-border);
   border-radius: var(--ng-radius-md);
   padding: var(--ng-space-3);
-  background: #f8fbfa;
+  background: var(--ng-muted-bg);
   margin-bottom: var(--ng-space-3);
 }
 

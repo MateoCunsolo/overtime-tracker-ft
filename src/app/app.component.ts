@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { DataMigrationService } from './core/services/data-migration.service';
-import { RateConfigService } from './core/services/rate-config.service';
 
 @Component({
   selector: 'app-root',
@@ -10,11 +9,7 @@ import { RateConfigService } from './core/services/rate-config.service';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  constructor(
-    private readonly rateConfigService: RateConfigService,
-    private readonly dataMigrationService: DataMigrationService
-  ) {
+  constructor(private readonly dataMigrationService: DataMigrationService) {
     this.dataMigrationService.runMigrations();
-    this.rateConfigService.ensureSeedData();
   }
 }
