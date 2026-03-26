@@ -308,6 +308,9 @@ export class OvertimePageComponent {
       icon: 'warning',
       showCancelButton: true,
       customClass: {
+        popup: 'swal-popup',
+        title: 'swal-title',
+        htmlContainer: 'swal-content',
         confirmButton: 'swal-btn swal-btn-danger',
         cancelButton: 'swal-btn swal-btn-cancel'
       },
