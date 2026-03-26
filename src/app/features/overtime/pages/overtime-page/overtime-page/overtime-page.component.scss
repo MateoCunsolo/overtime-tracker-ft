@@ -109,6 +109,20 @@ form {
   gap: 0.35rem;
 }
 
+.field-help {
+  color: var(--ng-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  margin-top: -0.15rem;
+}
+
+.form-divider {
+  height: 1px;
+  background: var(--ng-border);
+  opacity: 0.85;
+  margin: 0.15rem 0;
+}
+
 label {
   font-weight: 600;
   color: var(--ng-text-muted);
