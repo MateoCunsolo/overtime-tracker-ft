@@ -80,7 +80,7 @@
             <tbody>
               @for (entry of filteredEntries; track entry.id) {
                 <tr>
-                  <td>{{ entry.fecha }}</td>
+                  <td>{{ entry.fecha | isoDateToDmy }}</td>
                   <td>{{ getPreviewTypeLabel(entry.tipoDia) }}</td>
                   <td>{{ entry.horasExtra }}</td>
                   <td>${{ entry.totalPesos | number: '1.0-0' }}</td>

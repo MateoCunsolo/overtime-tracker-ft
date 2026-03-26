@@ -142,7 +142,7 @@
           <tbody>
             @for (entry of filteredEntries; track entry.id) {
               <tr>
-                <td>{{ entry.fecha }}</td>
+                <td>{{ entry.fecha | isoDateToDmy }}</td>
                 <td>{{ dayTypeLabelMap[entry.tipoDia] }}</td>
                 <td>{{ entry.horasExtra }}</td>
                 <td>${{ entry.valorHoraConAntiguedad | number: '1.0-0' }}</td>
@@ -176,7 +176,7 @@
       <div class="mobile-list">
         @for (entry of filteredEntries; track entry.id) {
           <article class="entry-card">
-            <p><strong>Fecha:</strong> {{ entry.fecha }}</p>
+            <p><strong>Fecha:</strong> {{ entry.fecha | isoDateToDmy }}</p>
             <p><strong>Tipo:</strong> {{ dayTypeLabelMap[entry.tipoDia] }}</p>
             <p><strong>Horas:</strong> {{ entry.horasExtra }}</p>
             <p><strong>Valor hora:</strong> ${{ entry.valorHoraConAntiguedad | number: '1.0-0' }}</p>

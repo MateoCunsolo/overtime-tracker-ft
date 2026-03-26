@@ -104,11 +104,10 @@ export class DashboardPageComponent implements OnInit {
     this.horas100 = this.sumHoursByType(periodEntries, 'weekend');
     this.horasFeriado = this.sumHoursByType(periodEntries, 'holiday');
     this.ultimoRegistroFecha = entries.length ? entries[0].fecha : '-';
-    // Texto para la sección "Liquidación" (sin año), con formato pedido:
-    // "de 24 de Marzo al 24 de Abril"
-    this.periodoLiquidacion = `${this.formatDayMonthUpper(period.start)} al ${this.formatDayMonthUpper(period.end)}`;
-    // Siempre mostrar solo "6 de mayo" (sin año) para la liquidación.
-    this.fechaPagoEstimada = this.formatDayMonth(this.getFourthBusinessDayOfNextMonth(period.end));
+    // Liquidación estandarizada: dd/MM/yyyy
+    this.periodoLiquidacion = `${this.formatDate(period.start)} al ${this.formatDate(period.end)}`;
+    // Pago estimado estandarizado: dd/MM/yyyy
+    this.fechaPagoEstimada = this.formatDate(this.getFourthBusinessDayOfNextMonth(period.end));
 
     this.liquidacionPeriodos = this.buildLiquidationPeriodSummaries(entries, period.start, this.cutoffDay);
   }

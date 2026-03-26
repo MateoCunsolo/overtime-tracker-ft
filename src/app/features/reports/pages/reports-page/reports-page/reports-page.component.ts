@@ -10,10 +10,11 @@ import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
 import { AppSwal, closeProcessingAlert, showProcessingAlert } from '../../../../../core/utils/alert.util';
 import { getLoadFailureMessage, isUnauthorizedAfterLogout } from '../../../../../core/utils/api-error.util';
+import { IsoDateToDmyPipe } from '../../../../../core/pipes/iso-date-to-dmy.pipe';
 
 @Component({
   selector: 'app-reports-page',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, IsoDateToDmyPipe],
   templateUrl: './reports-page.component.html',
   styleUrl: './reports-page.component.scss'
 })
@@ -177,7 +178,8 @@ export class ReportsPageComponent implements OnInit {
     if (!canExport) return;
 
     showProcessingAlert('Generando PDF...');
-    const reportLabel = this.getReportLabel();
+    const reportLabelRaw = this.getReportLabel();
+    const reportLabelHuman = this.getReportLabelHuman();
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
@@ -203,14 +205,14 @@ export class ReportsPageComponent implements OnInit {
       doc.text(operatorLine, 40, 63);
       doc.setTextColor(0, 0, 0);
       doc.text(`Categoria: ${this.profile?.categoria ?? '-'}`, 40, 83);
-      doc.text(`Periodo: ${reportLabel}`, 40, 101);
+      doc.text(`Periodo: ${reportLabelHuman}`, 40, 101);
       doc.text(`Registros: ${this.filteredEntries.length}`, 40, 119);
 
       autoTable(doc, {
         startY: 140,
         head: [['FECHA', 'PORCENTAJE DE PAGO', 'HORAS']],
         body: this.filteredEntries.map((entry) => [
-          entry.fecha,
+          this.formatIsoToDMY(entry.fecha),
           this.getDayTypeLabel(entry),
           entry.horasExtra.toString()
         ]),
@@ -256,7 +258,7 @@ export class ReportsPageComponent implements OnInit {
         .trim()
         .toLowerCase()
         .replace(/\s+/g, '-');
-      const fileName = `reporte-horas-${operatorName}-${reportLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+      const fileName = `reporte-horas-${operatorName}-${reportLabelRaw.replace(/\s+/g, '-').toLowerCase()}.pdf`;
       doc.save(fileName);
 
       closeProcessingAlert();
@@ -282,7 +284,8 @@ export class ReportsPageComponent implements OnInit {
     if (!canExport) return;
 
     showProcessingAlert('Generando imagen...');
-    const reportLabel = this.getReportLabel();
+    const reportLabelRaw = this.getReportLabel();
+    const reportLabelHuman = this.getReportLabelHuman();
     const operatorLine = `Operario: ${this.profile?.nombre ?? ''} ${this.profile?.apellido ?? ''}`.trim();
     const totals = this.calculateHoursByRateType();
     const rows = this.filteredEntries.length;
@@ -355,7 +358,7 @@ export class ReportsPageComponent implements OnInit {
     ctx.fillStyle = '#111827';
     ctx.font = '500 20px Montserrat, sans-serif';
     ctx.fillText(`Categoria: ${this.profile?.categoria ?? '-'}`, 45, 176);
-    ctx.fillText(`Periodo: ${reportLabel}`, 45, 206);
+    ctx.fillText(`Periodo: ${reportLabelHuman}`, 45, 206);
     ctx.fillText(`Registros: ${this.filteredEntries.length}`, 45, 236);
 
     const tableTop = 266;
@@ -380,7 +383,7 @@ export class ReportsPageComponent implements OnInit {
       ctx.fillRect(tableX, y, tableWidth, rowHeight);
       ctx.fillStyle = '#111827';
       ctx.font = '500 16px Montserrat, sans-serif';
-      ctx.fillText(entry.fecha, dateX, y + 30);
+      ctx.fillText(this.formatIsoToDMY(entry.fecha), dateX, y + 30);
       ctx.fillText(this.getDayTypeLabel(entry), typeX, y + 30);
       ctx.textAlign = 'right';
       ctx.fillText(entry.horasExtra.toFixed(2), hoursX, y + 30);
@@ -427,7 +430,7 @@ export class ReportsPageComponent implements OnInit {
       .toLowerCase()
       .replace(/\s+/g, '-');
     const extension = format === 'png' ? 'png' : 'jpg';
-    const fileName = `reporte-horas-${operatorName}-${reportLabel.replace(/\s+/g, '-').toLowerCase()}.${extension}`;
+    const fileName = `reporte-horas-${operatorName}-${reportLabelRaw.replace(/\s+/g, '-').toLowerCase()}.${extension}`;
     const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
     const dataUrl = canvas.toDataURL(mimeType, 0.95);
       const link = document.createElement('a');
@@ -498,7 +501,7 @@ export class ReportsPageComponent implements OnInit {
 
   get cutoffPeriodLabel(): string {
     const period = this.getCurrentCutoffPeriod();
-    return `${period.startIso} al ${period.endIso}`;
+    return `${this.formatIsoToDMY(period.startIso)} al ${this.formatIsoToDMY(period.endIso)}`;
   }
 
   private getDayTypeLabel(entry: OvertimeEntry): string {
@@ -512,6 +515,40 @@ export class ReportsPageComponent implements OnInit {
     const day = new Date(`${isoDate}T00:00:00`).getDay();
     const map = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
     return map[day] ?? 'Dia';
+  }
+
+  private formatIsoToDMY(isoDate: string): string {
+    const iso = isoDate.length >= 10 ? isoDate.slice(0, 10) : isoDate;
+    const [yStr, mStr, dStr] = iso.split('-');
+    const y = Number(yStr);
+    const m = Number(mStr);
+    const d = Number(dStr);
+    if (!y || !m || !d) return isoDate;
+    const dt = new Date(y, m - 1, d);
+    return new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(dt);
+  }
+
+  private getReportLabelHuman(): string {
+    const value = this.form.getRawValue();
+    if (value.modo === 'mes' && value.mes) {
+      // value.mes viene como YYYY-MM
+      const [yStr, mStr] = value.mes.split('-');
+      const y = Number(yStr);
+      const m = Number(mStr);
+      if (!y || !m) return value.mes;
+      const dt = new Date(y, m - 1, 1);
+      return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(dt);
+    }
+
+    const raw = this.getReportLabel();
+    if (!raw) return raw;
+    const parts = raw.split('_a_');
+    if (parts.length !== 2) return raw;
+    return `${this.formatIsoToDMY(parts[0])} al ${this.formatIsoToDMY(parts[1])}`;
   }
 
   private calculateHoursByRateType(): { weekday: number; weekend: number; holiday: number } {

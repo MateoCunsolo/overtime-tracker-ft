@@ -7,10 +7,11 @@ import { OvertimeService } from '../../../../../core/services/overtime.service';
 import { ProfileService } from '../../../../../core/services/profile.service';
 import { AppSwal, closeProcessingAlert, showProcessingAlert } from '../../../../../core/utils/alert.util';
 import { getLoadFailureMessage, getUserFacingErrorMessage, isUnauthorizedAfterLogout } from '../../../../../core/utils/api-error.util';
+import { IsoDateToDmyPipe } from '../../../../../core/pipes/iso-date-to-dmy.pipe';
 
 @Component({
   selector: 'app-overtime-page',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, IsoDateToDmyPipe],
   templateUrl: './overtime-page.component.html',
   styleUrl: './overtime-page.component.scss'
 })
