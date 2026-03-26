@@ -18,6 +18,7 @@ export class DashboardPageComponent implements OnInit {
   profile: UserProfile | null = null;
   totalGanado = 0;
   totalHorasMesLiquidacion = 0;
+  totalHorasHistorico = 0;
   totalGanadoMesLiquidacion = 0;
   horas50 = 0;
   horas100 = 0;
@@ -26,6 +27,16 @@ export class DashboardPageComponent implements OnInit {
   periodoLiquidacion = '';
   fechaPagoEstimada = '';
   cutoffDay = 24;
+  liquidacionPeriodos: {
+    label: string;
+    total: number;
+    horas: number;
+    cierreMes: string;
+    horas50: number;
+    horas100: number;
+    horasFeriado: number;
+  }[] = [];
+  expandedLiquidacionIndex: number | null = null;
   showOnboarding = false;
   loading = true;
   loadError = false;
@@ -82,24 +93,36 @@ export class DashboardPageComponent implements OnInit {
 
   private applyEntries(entries: OvertimeEntry[]): void {
     this.cutoffDay = this.appSettingsService.getSettings().cutoffDay;
-    const period = this.getLiquidationPeriodForCurrentMonth(this.cutoffDay);
+    const period = this.getActiveLiquidationPeriod(this.cutoffDay, new Date());
     const periodEntries = this.filterEntriesByRange(entries, period.start, period.end);
 
     this.totalGanado = this.overtimeService.getTotalGanado(entries);
+    this.totalHorasHistorico = this.sumHours(entries);
     this.totalHorasMesLiquidacion = this.sumHours(periodEntries);
     this.totalGanadoMesLiquidacion = this.sumAmount(periodEntries);
     this.horas50 = this.sumHoursByType(periodEntries, 'weekday');
     this.horas100 = this.sumHoursByType(periodEntries, 'weekend');
     this.horasFeriado = this.sumHoursByType(periodEntries, 'holiday');
     this.ultimoRegistroFecha = entries.length ? entries[0].fecha : '-';
-    this.periodoLiquidacion = `${this.formatDate(period.start)} al ${this.formatDate(period.end)}`;
-    this.fechaPagoEstimada = this.formatDate(this.getFourthBusinessDayOfNextMonth(period.end));
+    // Texto para la sección "Liquidación" (sin año), con formato pedido:
+    // "de 24 de Marzo al 24 de Abril"
+    this.periodoLiquidacion = `${this.formatDayMonthUpper(period.start)} al ${this.formatDayMonthUpper(period.end)}`;
+    // Siempre mostrar solo "6 de mayo" (sin año) para la liquidación.
+    this.fechaPagoEstimada = this.formatDayMonth(this.getFourthBusinessDayOfNextMonth(period.end));
+
+    this.liquidacionPeriodos = this.buildLiquidationPeriodSummaries(entries, period.start, this.cutoffDay);
   }
 
-  private getLiquidationPeriodForCurrentMonth(cutoffDay: number): { start: Date; end: Date } {
-    const now = new Date();
-    const end = new Date(now.getFullYear(), now.getMonth(), cutoffDay);
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, cutoffDay);
+  private getActiveLiquidationPeriod(cutoffDay: number, now: Date): { start: Date; end: Date } {
+    const y = now.getFullYear();
+    const m = now.getMonth();
+
+    // Si hoy ya pasó el día de corte (ej: > 24), el período activo arranca en el 24 de este mes.
+    const isAfterCutoff = now.getDate() > cutoffDay;
+
+    const start = isAfterCutoff ? new Date(y, m, cutoffDay) : new Date(y, m - 1, cutoffDay);
+    const end = isAfterCutoff ? new Date(y, m + 1, cutoffDay) : new Date(y, m, cutoffDay);
+
     return { start, end };
   }
 
@@ -108,6 +131,81 @@ export class DashboardPageComponent implements OnInit {
       const d = this.parseLocalDate(entry.fecha);
       return d >= start && d <= end;
     });
+  }
+
+  private buildLiquidationPeriodSummaries(
+    entries: OvertimeEntry[],
+    activeStart: Date,
+    cutoffDay: number
+  ): {
+    label: string;
+    total: number;
+    horas: number;
+    cierreMes: string;
+    horas50: number;
+    horas100: number;
+    horasFeriado: number;
+  }[] {
+    if (!entries.length) return [];
+
+    const minDate = entries
+      .map((e) => this.parseLocalDate(e.fecha))
+      .reduce((min, d) => (d < min ? d : min));
+
+    const summaries: {
+      label: string;
+      total: number;
+      horas: number;
+      cierreMes: string;
+      horas50: number;
+      horas100: number;
+      horasFeriado: number;
+    }[] = [];
+
+    // Recorremos períodos hacia atrás en pasos de 1 mes:
+    // período M => [M/cutoffDay .. (M+1)/cutoffDay]
+    let cursorStart = new Date(activeStart.getFullYear(), activeStart.getMonth(), cutoffDay);
+    let guard = 0;
+
+    while (guard < 360) {
+      const start = cursorStart;
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, cutoffDay);
+
+      if (end < minDate) break;
+
+      const periodEntries = this.filterEntriesByRange(entries, start, end);
+      if (periodEntries.length) {
+        const total = this.sumAmount(periodEntries);
+        const horas = this.sumHours(periodEntries);
+        const horas50 = this.sumHoursByType(periodEntries, 'weekday');
+        const horas100 = this.sumHoursByType(periodEntries, 'weekend');
+        const horasFeriado = this.sumHoursByType(periodEntries, 'holiday');
+        summaries.push({
+          label: `${this.formatDate(start)} al ${this.formatDate(end)}`,
+          total,
+          horas,
+          cierreMes: this.getSpanishMonthUpper(end),
+          horas50,
+          horas100,
+          horasFeriado
+        });
+      }
+
+      cursorStart = new Date(start.getFullYear(), start.getMonth() - 1, cutoffDay);
+      guard += 1;
+    }
+
+    return summaries;
+  }
+
+  toggleLiquidacion(i: number): void {
+    this.expandedLiquidacionIndex = this.expandedLiquidacionIndex === i ? null : i;
+  }
+
+  private getSpanishMonthUpper(date: Date): string {
+    const month = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(date);
+    // Ej: "marzo" -> "MARZO"
+    return month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
   }
 
   private sumHours(entries: OvertimeEntry[]): number {
@@ -153,5 +251,18 @@ export class DashboardPageComponent implements OnInit {
       month: '2-digit',
       year: 'numeric'
     }).format(date);
+  }
+
+  private formatDayMonth(date: Date): string {
+    // Intl en es-AR devuelve algo como "6 de mayo" (sin año).
+    const day = date.getDate();
+    const monthUpper = this.getSpanishMonthUpper(date);
+    return `${day} de ${monthUpper}`;
+  }
+
+  private formatDayMonthUpper(date: Date): string {
+    const day = date.getDate();
+    const monthUpper = this.getSpanishMonthUpper(date);
+    return `${day} de ${monthUpper}`;
   }
 }

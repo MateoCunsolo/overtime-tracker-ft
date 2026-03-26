@@ -12,6 +12,21 @@
     </article>
   } @else {
     @if (showOnboarding) {
+      @if (profile?.nombre) {
+        <p
+          style="
+            display: block;
+            margin: 0 0 var(--ng-space-4);
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--ng-text);
+            letter-spacing: -0.01em;
+          "
+        >
+          Hola {{ profile?.nombre }}!
+        </p>
+      }
+
       <article class="card onboarding-card card-full">
         <div class="onboarding-head">
           <span class="pulse-dot" aria-hidden="true"></span>
@@ -25,73 +40,111 @@
         </ol>
         <button type="button" class="btn-onboarding" (click)="dismissOnboarding()">Entendido</button>
       </article>
+    } @else {
+      @if (profile?.nombre) {
+        <p class="greeting">Hola, {{ profile?.nombre }}!</p>
+      }
     }
 
-    <div class="dash-metrics">
-      <article class="metric-card metric-total">
-        <span class="metric-label">Total acumulado</span>
-        <strong class="metric-value">{{ totalGanado | currency: 'ARS' : 'symbol' : '1.0-0' }}</strong>
-        <span class="metric-hint">Todo tu histórico</span>
-      </article>
-      <article class="metric-card metric-hours">
-        <span class="metric-label">Horas del período</span>
-        <strong class="metric-value">{{ totalHorasMesLiquidacion }}</strong>
-        <span class="metric-hint">Corte día {{ cutoffDay }}</span>
-      </article>
-      <article class="metric-card metric-period">
-        <span class="metric-label">Total del período</span>
-        <strong class="metric-value">{{ totalGanadoMesLiquidacion | currency: 'ARS' : 'symbol' : '1.0-0' }}</strong>
-        <span class="metric-hint">{{ periodoLiquidacion }}</span>
-      </article>
-    </div>
-
     <div class="dash-grid">
-      <article class="card card-profile">
-        <h2>Tu perfil</h2>
-        @if (profile) {
-          @if (profile.email) {
-            <p><strong>Email</strong><span class="value">{{ profile.email }}</span></p>
-          }
-          <p><strong>Nombre</strong><span class="value">{{ profile.nombre }} {{ profile.apellido }}</span></p>
-          <p><strong>Categoría</strong><span class="value">{{ profile.categoria }}</span></p>
-          <p>
-            <strong>Antigüedad</strong>
-            <span class="value"
-              >{{ profile.antiguedadAnios }} años · ×{{ antiguedadMultiplier | number: '1.2-2' }}
-              <span class="muted">(1 + {{ profile.antiguedadAnios }}%)</span></span
-            >
-          </p>
-        }
-        <a class="link-cta" routerLink="/overtime">Cargar horas extras →</a>
-      </article>
-
-      <article class="card card-summary">
+      <article class="card card-summary card-full">
         <h2>Resumen del período</h2>
         <p><strong>Liquidación</strong><span class="value">{{ periodoLiquidacion }}</span></p>
-        <p><strong>Pago estimado</strong><span class="value">{{ fechaPagoEstimada }} (4° hábil)</span></p>
-        <p><strong>Última carga</strong><span class="value">{{ ultimoRegistroFecha }}</span></p>
+        <p><strong>Pago estimado</strong><span class="value">{{ fechaPagoEstimada }}</span></p>
+        <div class="summary-total">
+          <span class="metric-label">Total del período</span>
+          <strong class="metric-value">{{
+            totalGanadoMesLiquidacion | currency: 'ARS' : 'symbol' : '1.0-0'
+          }}</strong>
+        </div>
+
+        <div class="card-summary-distribution">
+          <ul class="dist-list">
+            <li>
+              <span class="dist-pill dist-50">50%</span>
+              <span>Semana</span>
+              <strong>{{ horas50 }}</strong>
+            </li>
+            <li>
+              <span class="dist-pill dist-100">100%</span>
+              <span>Sáb/Dom</span>
+              <strong>{{ horas100 }}</strong>
+            </li>
+            <li>
+              <span class="dist-pill dist-f">+65%</span>
+              <span>Feriados</span>
+              <strong>{{ horasFeriado }}</strong>
+            </li>
+          </ul>
+        </div>
       </article>
 
-      <article class="card card-full card-distribution">
-        <h2>Distribución de horas</h2>
-        <p class="card-lead">Período con corte día {{ cutoffDay }}.</p>
-        <ul class="dist-list">
-          <li>
-            <span class="dist-pill dist-50">50%</span>
-            <span>Días de semana</span>
-            <strong>{{ horas50 }}</strong>
-          </li>
-          <li>
-            <span class="dist-pill dist-100">100%</span>
-            <span>Sábado / domingo</span>
-            <strong>{{ horas100 }}</strong>
-          </li>
-          <li>
-            <span class="dist-pill dist-f">+65%</span>
-            <span>Feriados</span>
-            <strong>{{ horasFeriado }}</strong>
-          </li>
-        </ul>
+      <article class="card card-periods">
+        <h2>Historial de liquidaciones</h2>
+        <p class="card-lead">Ganancias por períodos de corte.</p>
+
+        @if (!liquidacionPeriodos.length) {
+          <p class="muted">Todavía no hay registros.</p>
+        } @else {
+          <ul class="periods-list">
+            @for (p of liquidacionPeriodos; track p.label; let i = $index) {
+              <li class="periods-item">
+                <button
+                  type="button"
+                  class="periods-summary"
+                  (click)="toggleLiquidacion(i)"
+                  [attr.aria-expanded]="expandedLiquidacionIndex === i"
+                >
+                  <span class="periods-label">
+                    {{ p.label }} <span class="periods-close-month">{{ p.cierreMes }}</span>
+                  </span>
+                  <span class="periods-summary-right">
+                    <strong class="periods-amount">{{ p.total | currency: 'ARS' : 'symbol' : '1.0-0' }}</strong>
+                    <span class="periods-chevron">{{ expandedLiquidacionIndex === i ? '−' : '+' }}</span>
+                  </span>
+                </button>
+
+                @if (expandedLiquidacionIndex === i) {
+                  <div class="periods-body">
+                    @if (p.horas100 > 0) {
+                      <div class="hours-mini-card">
+                        <span class="hours-percent dist-pill dist-100">100%</span>
+                        <strong class="hours-value">{{ p.horas100 | number: '1.0-0' }}</strong>
+                      </div>
+                    }
+                    @if (p.horas50 > 0) {
+                      <div class="hours-mini-card">
+                        <span class="hours-percent dist-pill dist-50">50%</span>
+                        <strong class="hours-value">{{ p.horas50 | number: '1.0-0' }}</strong>
+                      </div>
+                    }
+                    @if (p.horasFeriado > 0) {
+                      <div class="hours-mini-card">
+                        <span class="hours-percent dist-pill dist-f">+65%</span>
+                        <strong class="hours-value">{{ p.horasFeriado | number: '1.0-0' }}</strong>
+                      </div>
+                    }
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </article>
+
+      <article class="card card-mini-hours">
+        <h2>Horas</h2>
+        <p class="card-lead">Conteo global y del período activo.</p>
+        <div class="mini-hours-grid">
+          <div class="mini-hour-card mini-hour-historic">
+            <span class="mini-hour-label">Histórico</span>
+            <strong class="mini-hour-value">{{ totalHorasHistorico | number: '1.0-2' }}</strong>
+          </div>
+          <div class="mini-hour-card mini-hour-current">
+            <span class="mini-hour-label">Corte actual</span>
+            <strong class="mini-hour-value">{{ totalHorasMesLiquidacion | number: '1.0-2' }}</strong>
+          </div>
+        </div>
       </article>
     </div>
   }

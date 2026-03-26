@@ -104,11 +104,11 @@
 
       <p class="rate-preview">
         Valor hora base:
-        <strong>{{ valorHoraSeleccionado | currency:'ARS':'symbol':'1.0-0' }}</strong>
+        <strong>${{ valorHoraSeleccionado | number: '1.0-0' }}</strong>
       </p>
       <p class="rate-preview">
         Valor hora con antigüedad:
-        <strong>{{ valorHoraConAntiguedadSeleccionada | currency:'ARS':'symbol':'1.0-0' }}</strong>
+        <strong>${{ valorHoraConAntiguedadSeleccionada | number: '1.0-0' }}</strong>
       </p>
 
       <button type="submit" [disabled]="authSubmitting">

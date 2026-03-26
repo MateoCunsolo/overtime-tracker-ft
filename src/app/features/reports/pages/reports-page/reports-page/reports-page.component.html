@@ -62,7 +62,7 @@
     <article class="card">
       <h2>Vista previa</h2>
       <p><strong>Registros:</strong> {{ filteredEntries.length }}</p>
-      <p><strong>Total:</strong> {{ totalFiltrado | currency:'ARS':'symbol':'1.0-0' }}</p>
+      <p><strong>Total:</strong> ${{ totalFiltrado | number: '1.0-0' }}</p>
 
       @if (!filteredEntries.length) {
         <p>No hay registros para este filtro.</p>
@@ -83,7 +83,7 @@
                   <td>{{ entry.fecha }}</td>
                   <td>{{ getPreviewTypeLabel(entry.tipoDia) }}</td>
                   <td>{{ entry.horasExtra }}</td>
-                  <td>{{ entry.totalPesos | currency:'ARS':'symbol':'1.0-0' }}</td>
+                  <td>${{ entry.totalPesos | number: '1.0-0' }}</td>
                 </tr>
               }
             </tbody>

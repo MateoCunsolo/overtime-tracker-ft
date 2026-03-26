@@ -201,6 +201,79 @@ export class OvertimePageComponent {
     if (!this.form.value.fecha) {
       this.form.patchValue({ fecha: this.getTodayIsoDate() });
     }
+
+    const horaInicio = this.form.value.horaInicio;
+    const horaFin = this.form.value.horaFin;
+    if (!horaInicio || !horaFin) {
+      const presets = this.manualFastPresets;
+      if (presets.length) {
+        this.applyManualFastPreset(presets[0]);
+      }
+    }
+  }
+
+  get manualFastPresets(): { label: string; horaInicio: string; horaFin: string }[] {
+    const fecha = this.form.controls.fecha.value;
+    if (!fecha) return [];
+
+    const day = new Date(`${fecha}T00:00:00`).getDay(); // 0 domingo, 6 sábado
+
+    // Finde: se comporta igual para turno mañana/tarde.
+    if (day === 0) {
+      return [{ label: '06:00–14:00', horaInicio: '06:00', horaFin: '14:00' }];
+    }
+
+    if (day === 6) {
+      return [
+        { label: '14:00–16:00', horaInicio: '14:00', horaFin: '16:00' },
+        { label: '14:00–17:00', horaInicio: '14:00', horaFin: '17:00' },
+        { label: '14:00–18:00', horaInicio: '14:00', horaFin: '18:00' },
+        { label: '14:00–22:00', horaInicio: '14:00', horaFin: '22:00' }
+      ];
+    }
+
+    // Días de semana: depende de tu turno.
+    const shift: WorkShift = this.profileService.getProfile()?.workShift ?? 'morning';
+    if (shift === 'afternoon') {
+      // Turno tarde (tt): fin fijo en 14:00, inicio variable.
+      return [
+        { label: '10:00–14:00', horaInicio: '10:00', horaFin: '14:00' },
+        { label: '11:00–14:00', horaInicio: '11:00', horaFin: '14:00' },
+        { label: '12:00–14:00', horaInicio: '12:00', horaFin: '14:00' },
+        { label: '13:00–14:00', horaInicio: '13:00', horaFin: '14:00' }
+      ];
+    }
+
+    // Turno mañana (tm): inicio fijo en 14:00, fin variable.
+    return [
+      { label: '14:00–15:00', horaInicio: '14:00', horaFin: '15:00' },
+      { label: '14:00–16:00', horaInicio: '14:00', horaFin: '16:00' },
+      { label: '14:00–17:00', horaInicio: '14:00', horaFin: '17:00' },
+      { label: '14:00–18:00', horaInicio: '14:00', horaFin: '18:00' }
+    ];
+  }
+
+  get manualFastPresetsHint(): string {
+    const fecha = this.form.controls.fecha.value;
+    if (!fecha) return this.weekdayShiftHint;
+
+    const day = new Date(`${fecha}T00:00:00`).getDay();
+    if (day === 0) return 'Domingo: 06:00 a 14:00.';
+    if (day === 6) return 'Sábado: 14:00–16:00, 17:00, 18:00 o 22:00.';
+
+    const shift = this.profileService.getProfile()?.workShift ?? 'morning';
+    return shift === 'afternoon'
+      ? 'Día de semana (turno tarde): elegí rangos que terminen a las 14:00.'
+      : 'Día de semana (turno mañana): elegí rangos que empiecen a las 14:00.';
+  }
+
+  applyManualFastPreset(preset: { label: string; horaInicio: string; horaFin: string }): void {
+    this.isManualMode = true;
+    this.selectedPresetLabel = preset.label;
+    this.form.patchValue({
+      horaInicio: preset.horaInicio,
+      horaFin: preset.horaFin
+    });
   }
 
   async deleteEntry(id: string): Promise<void> {

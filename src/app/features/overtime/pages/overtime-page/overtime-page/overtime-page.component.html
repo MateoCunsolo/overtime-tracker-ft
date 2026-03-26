@@ -43,16 +43,34 @@
           <input id="fecha" type="date" formControlName="fecha" />
         </div>
 
-        <div class="two-cols">
-          <div class="field">
-            <label for="inicio">Inicio</label>
-            <input id="inicio" type="time" formControlName="horaInicio" />
+        @if (editingEntryId || !manualFastPresets.length) {
+          <div class="two-cols">
+            <div class="field">
+              <label for="inicio">Inicio</label>
+              <input id="inicio" type="time" formControlName="horaInicio" />
+            </div>
+            <div class="field">
+              <label for="fin">Fin</label>
+              <input id="fin" type="time" formControlName="horaFin" />
+            </div>
           </div>
-          <div class="field">
-            <label for="fin">Fin</label>
-            <input id="fin" type="time" formControlName="horaFin" />
+        }
+
+        @if (!editingEntryId && manualFastPresets.length) {
+          <p class="shift-hint">{{ manualFastPresetsHint }}</p>
+          <div class="quick-presets">
+            @for (preset of manualFastPresets; track preset.label) {
+              <button
+                class="btn-preset"
+                type="button"
+                [class.btn-preset-active]="selectedPresetLabel === preset.label"
+                (click)="applyManualFastPreset(preset)"
+              >
+                {{ preset.label }}
+              </button>
+            }
           </div>
-        </div>
+        }
 
         <div class="check-row">
           <label class="checkbox">
@@ -127,9 +145,9 @@
                 <td>{{ entry.fecha }}</td>
                 <td>{{ dayTypeLabelMap[entry.tipoDia] }}</td>
                 <td>{{ entry.horasExtra }}</td>
-                <td>{{ entry.valorHoraConAntiguedad | currency:'ARS':'symbol':'1.0-0' }}</td>
+                <td>${{ entry.valorHoraConAntiguedad | number: '1.0-0' }}</td>
                 <td>{{ entry.antiguedadAnios }}%</td>
-                <td>{{ entry.totalPesos | currency:'ARS':'symbol':'1.0-0' }}</td>
+                <td>${{ entry.totalPesos | number: '1.0-0' }}</td>
                 <td>
                   <button
                     class="btn-edit"
@@ -161,8 +179,8 @@
             <p><strong>Fecha:</strong> {{ entry.fecha }}</p>
             <p><strong>Tipo:</strong> {{ dayTypeLabelMap[entry.tipoDia] }}</p>
             <p><strong>Horas:</strong> {{ entry.horasExtra }}</p>
-            <p><strong>Valor hora:</strong> {{ entry.valorHoraConAntiguedad | currency:'ARS':'symbol':'1.0-0' }}</p>
-            <p><strong>Total:</strong> {{ entry.totalPesos | currency:'ARS':'symbol':'1.0-0' }}</p>
+            <p><strong>Valor hora:</strong> ${{ entry.valorHoraConAntiguedad | number: '1.0-0' }}</p>
+            <p><strong>Total:</strong> ${{ entry.totalPesos | number: '1.0-0' }}</p>
             <button
               class="btn-edit"
               [class.btn-editing]="editingEntryId === entry.id"

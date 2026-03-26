@@ -87,7 +87,7 @@ p strong {
 /* Métricas hero */
 .dash-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--ng-space-4);
 }
 
@@ -133,6 +133,7 @@ p strong {
   line-height: 1.15;
 }
 
+
 .metric-hint {
   display: block;
   margin-top: var(--ng-space-2);
@@ -153,6 +154,14 @@ p strong {
 
 .card-summary {
   min-height: 100%;
+}
+
+.card-summary-distribution {
+  margin-top: var(--ng-space-4);
+}
+
+.summary-total {
+  margin-top: var(--ng-space-4);
 }
 
 .link-cta {
@@ -227,6 +236,163 @@ p strong {
 }
 
 /* Onboarding */
+.card-mini-hours {
+  min-height: 100%;
+}
+
+.mini-hours-grid {
+  display: grid;
+  gap: var(--ng-space-3);
+  margin-top: var(--ng-space-4);
+}
+
+.mini-hour-card {
+  display: grid;
+  gap: var(--ng-space-1);
+  padding: var(--ng-space-4);
+  border-radius: var(--ng-radius-lg);
+  border: 1px solid var(--ng-border);
+  background: var(--ng-muted-bg);
+}
+
+.mini-hour-historic {
+  background: linear-gradient(135deg, rgb(20 184 166 / 18%), rgb(14 165 233 / 10%));
+  border-color: rgb(20 184 166 / 28%);
+}
+
+.mini-hour-current {
+  background: linear-gradient(135deg, rgb(99 102 241 / 20%), rgb(34 211 238 / 10%));
+  border-color: rgb(99 102 241 / 28%);
+}
+
+.mini-hour-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ng-text-muted);
+}
+
+.mini-hour-value {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: var(--ng-text);
+  line-height: 1;
+}
+
+.card-periods .card-lead {
+  display: block;
+  margin: var(--ng-space-2) 0 var(--ng-space-4);
+  color: var(--ng-text-muted);
+  font-size: var(--ng-subtitle-size);
+}
+
+.periods-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ng-space-3);
+}
+
+.periods-item {
+  display: block;
+  padding: var(--ng-space-3) var(--ng-space-4);
+  border-radius: var(--ng-radius-md);
+  background: var(--ng-muted-bg);
+  border: 1px solid var(--ng-border);
+}
+
+.periods-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ng-space-3);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+
+.periods-summary-right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ng-space-3);
+}
+
+.periods-chevron {
+  font-weight: 900;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--ng-text);
+}
+
+.periods-label {
+  font-size: 0.92rem;
+  color: var(--ng-text-muted);
+}
+
+.periods-close-month {
+  display: inline-block;
+  margin-left: var(--ng-space-2);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ng-accent);
+}
+
+.periods-amount {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ng-text);
+}
+
+.periods-body {
+  margin-top: var(--ng-space-3);
+  padding-top: var(--ng-space-3);
+  border-top: 1px dashed var(--ng-border);
+  display: grid;
+  gap: var(--ng-space-2);
+}
+
+.hours-mini-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ng-space-3);
+  padding: var(--ng-space-2) var(--ng-space-3);
+  border-radius: var(--ng-radius-md);
+  background: rgb(255 255 255 / 6%);
+  border: 1px solid var(--ng-border);
+}
+
+.periods-hours-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--ng-space-3);
+  color: var(--ng-text-muted);
+}
+
+.hours-percent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hours-arrow {
+  color: var(--ng-text-muted);
+  font-weight: 800;
+}
+
+.hours-value {
+  color: var(--ng-text);
+  font-weight: 900;
+}
+
 .onboarding-card {
   border-color: var(--ng-border-strong);
   background: var(--ng-onboarding-gradient);
@@ -350,4 +516,10 @@ ol {
     bottom: var(--ng-space-3);
     justify-content: center;
   }
+}
+
+.greeting {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ng-text);
 }
