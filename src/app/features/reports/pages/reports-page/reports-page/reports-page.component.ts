@@ -34,7 +34,7 @@ export class ReportsPageComponent implements OnInit {
   exportInProgress = false;
 
   readonly form = this.fb.group({
-    modo: ['mes' as 'mes' | 'rango' | 'corte', [Validators.required]],
+    modo: ['corte' as 'mes' | 'rango' | 'corte', [Validators.required]],
     mes: ['', [Validators.required]],
     fechaDesde: [''],
     fechaHasta: ['']
@@ -49,7 +49,9 @@ export class ReportsPageComponent implements OnInit {
   ngOnInit(): void {
     this.profile = this.profileService.getProfile();
     this.cutoffDay = this.appSettingsService.getSettings().cutoffDay;
-    this.form.controls.mes.setValue(this.getCurrentMonthValue());
+    if (this.form.controls.modo.value === 'mes') {
+      this.form.controls.mes.setValue(this.getCurrentMonthValue());
+    }
     this.loadEntries();
   }
 
