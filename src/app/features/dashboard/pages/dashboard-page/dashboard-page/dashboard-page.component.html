@@ -53,9 +53,11 @@
         <p><strong>Pago estimado</strong><span class="value">{{ fechaPagoEstimada }}</span></p>
         <div class="summary-total">
           <span class="metric-label">Total del período</span>
-          <strong class="metric-value">{{
-            totalGanadoMesLiquidacion | currency: 'ARS' : 'symbol' : '1.0-0'
-          }}</strong>
+          <strong
+            class="metric-value"
+            style="text-shadow: 0 0 10px rgb(34 211 238 / 35%), 0 0 20px rgb(20 184 166 / 25%);"
+            >${{ totalGanadoMesLiquidacion | number: '1.0-0' }}</strong
+          >
         </div>
 
         <div class="card-summary-distribution">
@@ -99,7 +101,7 @@
                     {{ p.label }} <span class="periods-close-month">{{ p.cierreMes }}</span>
                   </span>
                   <span class="periods-summary-right">
-                    <strong class="periods-amount">{{ p.total | currency: 'ARS' : 'symbol' : '1.0-0' }}</strong>
+                    <strong class="periods-amount">${{ p.total | number: '1.0-0' }}</strong>
                     <span class="periods-chevron">{{ expandedLiquidacionIndex === i ? '−' : '+' }}</span>
                   </span>
                 </button>
