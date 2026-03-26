@@ -51,12 +51,26 @@ label {
 }
 
 input[type='month'],
-input[type='date'] {
+input[type='date'],
+input[type='text'] {
   border: 1px solid var(--ng-border);
   border-radius: var(--ng-radius-sm);
   padding: 0.62rem 0.75rem;
   background: var(--ng-input-bg);
   color: var(--ng-input-fg);
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--ng-font);
+}
+
+input[type='text']::placeholder {
+  color: var(--ng-text-muted);
+  opacity: 0.8;
+}
+
+input[type='text']:focus-visible {
+  outline: 2px solid var(--ng-primary-bright);
+  outline-offset: 2px;
 }
 
 .actions {

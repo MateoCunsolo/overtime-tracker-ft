@@ -25,6 +25,7 @@ export class DashboardPageComponent implements OnInit {
   horasFeriado = 0;
   ultimoRegistroFecha = '-';
   periodoLiquidacion = '';
+  periodoLiquidacionHuman = '';
   fechaPagoEstimada = '';
   cutoffDay = 24;
   liquidacionPeriodos: {
@@ -104,10 +105,13 @@ export class DashboardPageComponent implements OnInit {
     this.horas100 = this.sumHoursByType(periodEntries, 'weekend');
     this.horasFeriado = this.sumHoursByType(periodEntries, 'holiday');
     this.ultimoRegistroFecha = entries.length ? entries[0].fecha : '-';
-    // Liquidación estandarizada: dd/MM/yyyy
+    // Liquidación (línea 1): dd/MM/yyyy al dd/MM/yyyy
     this.periodoLiquidacion = `${this.formatDate(period.start)} al ${this.formatDate(period.end)}`;
-    // Pago estimado estandarizado: dd/MM/yyyy
-    this.fechaPagoEstimada = this.formatDate(this.getFourthBusinessDayOfNextMonth(period.end));
+    // Liquidación (línea 2): 24 de Marzo al 24 de Abril
+    this.periodoLiquidacionHuman = `${this.formatDayMonth(period.start)} al ${this.formatDayMonth(period.end)}`;
+
+    // Pago estimado (texto): 6 de Mayo
+    this.fechaPagoEstimada = this.formatDayMonth(this.getFourthBusinessDayOfNextMonth(period.end));
 
     this.liquidacionPeriodos = this.buildLiquidationPeriodSummaries(entries, period.start, this.cutoffDay);
   }

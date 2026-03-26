@@ -577,8 +577,17 @@ export class ReportsPageComponent implements OnInit {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
-    const end = new Date(year, month, this.cutoffDay);
-    const start = new Date(year, month - 1, this.cutoffDay);
+    const today = new Date(year, month, now.getDate());
+
+    // Periodo "actual" por defecto: 24 del mes pasado -> 24 del mes actual.
+    // Pero si ya pasó el 24 del mes actual, el período vigente es: 24 del mes actual -> 24 del mes siguiente.
+    let start = new Date(year, month - 1, this.cutoffDay);
+    let end = new Date(year, month, this.cutoffDay);
+
+    if (end < today) {
+      start = end;
+      end = new Date(year, month + 1, this.cutoffDay);
+    }
 
     return {
       startIso: this.toIsoDate(start),
