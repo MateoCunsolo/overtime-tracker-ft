@@ -116,6 +116,28 @@ form {
   margin-top: -0.15rem;
 }
 
+.holiday-tag {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--ng-radius-md);
+  border: 1px solid var(--ng-border);
+  background: var(--ng-muted-bg);
+  color: var(--ng-text);
+}
+
+.holiday-tag-title {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--ng-text-muted);
+}
+
+.holiday-tag-name {
+  font-size: 0.86rem;
+  line-height: 1.15;
+}
+
 .form-divider {
   height: 1px;
   background: var(--ng-border);

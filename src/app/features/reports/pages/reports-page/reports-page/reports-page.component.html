@@ -35,31 +35,34 @@
 
         @if (form.controls.modo.value === 'mes') {
           <label for="mes">Mes</label>
-          <input id="mes" type="month" formControlName="mes" (change)="applyFilter()" />
+          <input id="mes" type="month" lang="es-AR" formControlName="mes" (change)="applyFilter()" />
         } @else if (form.controls.modo.value === 'corte') {
           <p><strong>Corte configurado:</strong> dia {{ cutoffDay }}</p>
           <p class="cutoff-period-line"><strong>Periodo actual:</strong> {{ cutoffPeriodLabel }}</p>
         } @else {
-          <label for="fechaDesde">Fecha desde (dd/mm/aaaa)</label>
+          <label for="fechaDesde">Fecha desde</label>
           <input
             id="fechaDesde"
-            type="text"
-            inputmode="numeric"
-            placeholder="dd/mm/aaaa"
+            type="date"
+            lang="es-AR"
             formControlName="fechaDesde"
             (change)="applyFilter()"
           />
 
-          <label for="fechaHasta">Fecha hasta (dd/mm/aaaa)</label>
+          <label for="fechaHasta">Fecha hasta</label>
           <input
             id="fechaHasta"
-            type="text"
-            inputmode="numeric"
-            placeholder="dd/mm/aaaa"
+            type="date"
+            lang="es-AR"
             formControlName="fechaHasta"
             (change)="applyFilter()"
           />
         }
+
+        <label style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem">
+          <input type="checkbox" formControlName="incluirObservaciones" />
+          Incluir observaciones en el reporte
+        </label>
       </form>
 
       <div class="actions">
@@ -88,6 +91,9 @@
                 <th>Fecha</th>
                 <th>Tipo</th>
                 <th>Horas</th>
+                @if (includeObservaciones) {
+                  <th>Observaciones</th>
+                }
                 <th>Total</th>
               </tr>
             </thead>
@@ -97,6 +103,9 @@
                   <td>{{ entry.fecha | isoDateToDmy }}</td>
                   <td>{{ getPreviewTypeLabel(entry.tipoDia) }}</td>
                   <td>{{ entry.horasExtra }}</td>
+                  @if (includeObservaciones) {
+                    <td>{{ entry.observaciones || '-' }}</td>
+                  }
                   <td>${{ entry.totalPesos | number: '1.0-0' }}</td>
                 </tr>
               }

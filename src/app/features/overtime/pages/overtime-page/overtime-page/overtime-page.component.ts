@@ -30,6 +30,16 @@ export class OvertimePageComponent {
   /** Id del registro que se está borrando (evita doble DELETE). */
   deletingEntryId: string | null = null;
 
+  /** Cache de feriados por año (key ISO YYYY-MM-DD). */
+  private readonly feriadosByYear = new Map<number, Map<string, { tipo: string; nombre: string }>>();
+  private readonly feriadosInFlight = new Map<number, Promise<Map<string, { tipo: string; nombre: string }>>>();
+  /** Si true, la detección automática respondió OK. */
+  feriadoAutoLock = false;
+  feriadoNombre: string | null = null;
+  feriadoTipo: string | null = null;
+  /** Para “carga rápida”: si hoy es feriado, mostrar solo 06–14. */
+  private isTodayHoliday = false;
+
   readonly form = this.fb.group({
     fecha: ['', [Validators.required]],
     horaInicio: ['', [Validators.required]],
@@ -49,6 +59,14 @@ export class OvertimePageComponent {
     private readonly profileService: ProfileService
   ) {
     this.reload();
+
+    // Autodetección de feriados al cambiar la fecha.
+    this.form.controls.fecha.valueChanges.subscribe((iso) => {
+      void this.syncHolidayFromApi(iso ?? '');
+    });
+
+    // “Carga rápida” depende de si hoy es feriado.
+    void this.syncHolidayFromApi(this.getTodayIsoDate(), { setTodayFlag: true });
   }
 
   get filteredEntries(): OvertimeEntry[] {
@@ -219,6 +237,11 @@ export class OvertimePageComponent {
 
     const day = new Date(`${fecha}T00:00:00`).getDay(); // 0 domingo, 6 sábado
 
+    // Feriado nacional: para ambos turnos el rango es 06:00–14:00.
+    if (this.form.controls.esFeriadoNacional.value) {
+      return [{ label: '06:00–14:00', horaInicio: '06:00', horaFin: '14:00' }];
+    }
+
     // Finde: se comporta igual para turno mañana/tarde.
     if (day === 0) {
       return [{ label: '06:00–14:00', horaInicio: '06:00', horaFin: '14:00' }];
@@ -259,6 +282,7 @@ export class OvertimePageComponent {
     if (!fecha) return this.weekdayShiftHint;
 
     const day = new Date(`${fecha}T00:00:00`).getDay();
+    if (this.form.controls.esFeriadoNacional.value) return 'Feriado: 06:00 a 14:00.';
     if (day === 0) return 'Domingo: 06:00 a 14:00.';
     if (day === 6) return 'Sábado: 14:00–16:00, 17:00, 18:00 o 22:00.';
 
@@ -331,6 +355,9 @@ export class OvertimePageComponent {
   }
 
   get quickPresets(): { label: string; horaInicio: string; horaFin: string }[] {
+    if (this.isTodayHoliday) {
+      return [{ label: 'Hoy de 06:00 a 14:00', horaInicio: '06:00', horaFin: '14:00' }];
+    }
     const day = new Date().getDay();
     if (day === 0) return [{ label: 'Hoy de 06:00 a 14:00', horaInicio: '06:00', horaFin: '14:00' }];
     if (day === 6) return [{ label: 'Hoy de 14:00 a 22:00', horaInicio: '14:00', horaFin: '22:00' }];
@@ -354,6 +381,9 @@ export class OvertimePageComponent {
 
   /** Ayuda para carga manual: feriados y fines de semana no usan esta ventana. */
   get weekdayShiftHint(): string {
+    if (this.form.controls.esFeriadoNacional.value) {
+      return 'Feriado: horas extra entre 06:00 y 14:00, de 1 a 4 h completas.';
+    }
     const shift = this.profileService.getProfile()?.workShift ?? 'morning';
     if (shift === 'afternoon') {
       return 'Turno tarde: en días de semana (sin feriado), horas extra entre 10:00 y 14:00, de 1 a 4 h completas.';
@@ -412,5 +442,102 @@ export class OvertimePageComponent {
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+
+  private async syncHolidayFromApi(
+    isoDate: string,
+    opts?: { setTodayFlag?: boolean }
+  ): Promise<void> {
+    this.feriadoAutoLock = false;
+    this.feriadoNombre = null;
+    this.feriadoTipo = null;
+    if (!isoDate || isoDate.length < 10) return;
+
+    const year = Number(isoDate.slice(0, 4));
+    if (!year) return;
+
+    try {
+      const map = await this.getFeriadosMap(year);
+      const meta = map.get(isoDate.slice(0, 10));
+      const isHoliday = Boolean(meta);
+      this.feriadoAutoLock = true;
+      if (meta) {
+        this.feriadoNombre = meta.nombre;
+        this.feriadoTipo = meta.tipo;
+      }
+
+      if (opts?.setTodayFlag) {
+        this.isTodayHoliday = isHoliday;
+      }
+
+      // Si estamos editando, no pisamos el check existente.
+      if (!this.editingEntryId) {
+        const prev = this.form.controls.esFeriadoNacional.value;
+        if (prev !== isHoliday) {
+          this.form.patchValue({ esFeriadoNacional: isHoliday }, { emitEvent: false });
+        }
+
+        // Si es feriado, guiamos automáticamente al único rango válido.
+        if (isHoliday) {
+          this.selectedPresetLabel = '06:00–14:00';
+          this.form.patchValue({ horaInicio: '06:00', horaFin: '14:00' }, { emitEvent: false });
+        }
+      }
+    } catch {
+      // Si falla la API, dejamos el checkbox manual.
+      this.feriadoAutoLock = false;
+      if (opts?.setTodayFlag) {
+        this.isTodayHoliday = false;
+      }
+    }
+  }
+
+  private async getFeriadosMap(year: number): Promise<Map<string, { tipo: string; nombre: string }>> {
+    const cached = this.feriadosByYear.get(year);
+    if (cached) return cached;
+
+    const inFlight = this.feriadosInFlight.get(year);
+    if (inFlight) return inFlight;
+
+    const promise = (async () => {
+      const urls = [
+        `https://api.argentinadatos.com/v1/feriados/${year}`,
+        `https://argentinadatos.com/v1/feriados/${year}`
+      ];
+
+      let data: unknown = null;
+      let lastErr: unknown = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { headers: { Accept: 'application/json' } });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          data = await res.json();
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (lastErr) throw lastErr;
+
+      const list = Array.isArray(data)
+        ? (data as Array<{ fecha?: string; tipo?: string; nombre?: string }>)
+        : [];
+      const map = new Map<string, { tipo: string; nombre: string }>();
+      for (const item of list) {
+        const fecha = typeof item?.fecha === 'string' ? item.fecha.slice(0, 10) : '';
+        if (!fecha) continue;
+        const tipo = typeof item?.tipo === 'string' ? item.tipo : 'feriado';
+        const nombre = typeof item?.nombre === 'string' ? item.nombre : 'Feriado';
+        map.set(fecha, { tipo, nombre });
+      }
+
+      this.feriadosByYear.set(year, map);
+      this.feriadosInFlight.delete(year);
+      return map;
+    })();
+
+    this.feriadosInFlight.set(year, promise);
+    return promise;
   }
 }

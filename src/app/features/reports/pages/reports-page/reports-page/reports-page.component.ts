@@ -37,7 +37,8 @@ export class ReportsPageComponent implements OnInit {
     modo: ['corte' as 'mes' | 'rango' | 'corte', [Validators.required]],
     mes: ['', [Validators.required]],
     fechaDesde: [''],
-    fechaHasta: ['']
+    fechaHasta: [''],
+    incluirObservaciones: [false]
   });
 
   constructor(
@@ -93,6 +94,10 @@ export class ReportsPageComponent implements OnInit {
     return 'Día de semana';
   }
 
+  get includeObservaciones(): boolean {
+    return Boolean(this.form.controls.incluirObservaciones.value);
+  }
+
   applyFilter(): void {
     if (this.entriesLoadError || this.entriesLoading) {
       return;
@@ -102,13 +107,13 @@ export class ReportsPageComponent implements OnInit {
     const mode = value.modo;
 
     if (mode === 'mes') {
+      // UX: al elegir "Por mes", autoseleccionamos el mes actual.
+      const monthValue = value.mes || this.getCurrentMonthValue();
       if (!value.mes) {
-        this.filteredEntries = [];
-        this.errorMessage = 'Elegí un mes para filtrar.';
-        return;
+        this.form.controls.mes.setValue(monthValue);
       }
 
-      const [yearStr, monthStr] = value.mes.split('-');
+      const [yearStr, monthStr] = monthValue.split('-');
       const year = Number(yearStr);
       const month = Number(monthStr);
 
@@ -122,6 +127,11 @@ export class ReportsPageComponent implements OnInit {
 
     if (mode === 'corte') {
       const period = this.getCurrentCutoffPeriod();
+      // UX: al elegir "corte", dejamos precargado el rango actual (sirve si luego pasa a "rango").
+      this.form.patchValue(
+        { fechaDesde: period.startIso, fechaHasta: period.endIso },
+        { emitEvent: false }
+      );
       this.filteredEntries = this.entries.filter(
         (item) => item.fecha >= period.startIso && item.fecha <= period.endIso
       );
@@ -135,6 +145,7 @@ export class ReportsPageComponent implements OnInit {
       return;
     }
 
+    // type="date" devuelve YYYY-MM-DD, se puede comparar como string.
     if (value.fechaDesde > value.fechaHasta) {
       this.filteredEntries = [];
       this.errorMessage = 'La fecha “desde” no puede ser posterior a la fecha “hasta”.';
@@ -210,20 +221,67 @@ export class ReportsPageComponent implements OnInit {
       doc.text(`Periodo: ${reportLabelHuman}`, 40, 101);
       doc.text(`Registros: ${this.filteredEntries.length}`, 40, 119);
 
+      const includeObs = this.includeObservaciones;
       autoTable(doc, {
         startY: 140,
         head: [['FECHA', 'PORCENTAJE DE PAGO', 'HORAS']],
-        body: this.filteredEntries.map((entry) => [
-          this.formatIsoToDMY(entry.fecha),
-          this.getDayTypeLabel(entry),
-          entry.horasExtra.toString()
-        ]),
-        styles: { fontSize: 11, cellPadding: 4 },
+        body: this.filteredEntries.flatMap((entry) => {
+          const baseRow = [
+            this.formatIsoToDMY(entry.fecha),
+            this.getDayTypeLabel(entry),
+            entry.horasExtra.toString()
+          ];
+
+          const rows: unknown[] = [baseRow];
+
+          if (includeObs) {
+            const obs = (entry.observaciones ?? '').trim();
+            // Uniforme con la imagen: siempre agregamos la línea de observaciones (aunque esté vacía).
+            rows.push([
+              {
+                content: `Observaciones: ${obs || '-'}`,
+                colSpan: 3,
+                styles: {
+                  fontSize: 10,
+                  textColor: [55, 65, 81],
+                  fillColor: [248, 250, 252],
+                  overflow: 'linebreak' as const,
+                  valign: 'top' as const
+                }
+              }
+            ]);
+          }
+
+          // Separador visual entre registros (línea horizontal).
+          rows.push([
+            {
+              content: '',
+              colSpan: 3,
+              styles: {
+                fillColor: [255, 255, 255],
+                textColor: [255, 255, 255],
+                cellPadding: 0,
+                minCellHeight: 12,
+                lineColor: [229, 231, 235],
+                lineWidth: { top: 0.6, right: 0, bottom: 0, left: 0 } as const
+              }
+            }
+          ]);
+
+          return rows as unknown as any[];
+        }),
+        styles: {
+          fontSize: 11,
+          cellPadding: 4,
+          overflow: 'linebreak',
+          cellWidth: 'wrap',
+          valign: 'top'
+        },
         headStyles: { fillColor: [17, 24, 39], fontSize: 12 },
         columnStyles: {
           0: { cellWidth: 120 },
-          1: { cellWidth: 190 },
-          2: { cellWidth: 82, halign: 'right' }
+          1: { cellWidth: 260 },
+          2: { cellWidth: 80, halign: 'right' }
         }
       });
 
@@ -292,17 +350,40 @@ export class ReportsPageComponent implements OnInit {
     const totals = this.calculateHoursByRateType();
     const rows = this.filteredEntries.length;
     const canvasWidth = 900;
-    const rowHeight = 46;
+    const includeObs = this.includeObservaciones;
     const baseHeight = 360;
     const summaryRowsCount = 3;
     const summaryTitleHeight = 42;
-    const summaryRowsHeight = rowHeight * summaryRowsCount;
+    const summaryRowHeight = 46;
+    const summaryRowsHeight = summaryRowHeight * summaryRowsCount;
     const summarySpacingTop = 24;
     const summarySpacingBottom = 28;
     const footerPaddingBottom = 34;
+    const tableHeaderHeight = 42;
+    const minRowHeight = 46;
+    const canvasTmp = document.createElement('canvas');
+    const ctxTmp = canvasTmp.getContext('2d');
+    const tableX = 40;
+    const tableWidth = canvasWidth - 80;
+    const rowHeights =
+      includeObs && ctxTmp
+        ? this.filteredEntries.map((e) => {
+            // Layout “apilado”: una línea principal + observación debajo + separador.
+            ctxTmp.font = '500 16px Montserrat, sans-serif';
+            const obs = (e.observaciones ?? '').trim();
+            ctxTmp.font = '500 15px Montserrat, sans-serif';
+            const obsLines = obs ? this.wrapTextLines(ctxTmp, obs, tableWidth - 28) : [];
+            const obsHeight = obsLines.length ? obsLines.length * 16 + 10 : 0;
+            const baseLine = 38; // altura para la línea principal
+            const separator = 16; // espacio para línea separadora
+            return Math.max(minRowHeight, baseLine + obsHeight + separator);
+          })
+        : this.filteredEntries.map(() => minRowHeight);
+    const tableBodyHeight = rowHeights.reduce((acc, h) => acc + h, 0);
     const canvasHeight =
       baseHeight +
-      rows * rowHeight +
+      tableHeaderHeight +
+      tableBodyHeight +
       summarySpacingTop +
       summaryTitleHeight +
       summaryRowsHeight +
@@ -364,11 +445,9 @@ export class ReportsPageComponent implements OnInit {
     ctx.fillText(`Registros: ${this.filteredEntries.length}`, 45, 236);
 
     const tableTop = 266;
-    const tableX = 40;
-    const tableWidth = canvasWidth - 80;
     const dateX = tableX + 14;
     const typeX = tableX + 250;
-    const hoursX = tableX + tableWidth - 118;
+    const hoursX = tableX + tableWidth - 24;
     ctx.fillStyle = '#111827';
     ctx.fillRect(tableX, tableTop, tableWidth, 42);
     ctx.fillStyle = '#ffffff';
@@ -379,8 +458,10 @@ export class ReportsPageComponent implements OnInit {
     ctx.fillText('HORAS', hoursX, tableTop + 28);
     ctx.textAlign = 'left';
 
+    let cursorY = tableTop + tableHeaderHeight;
     this.filteredEntries.forEach((entry, index) => {
-      const y = tableTop + 42 + rowHeight * index;
+      const rowHeight = rowHeights[index] ?? minRowHeight;
+      const y = cursorY;
       ctx.fillStyle = index % 2 === 0 ? '#f8fafc' : '#ffffff';
       ctx.fillRect(tableX, y, tableWidth, rowHeight);
       ctx.fillStyle = '#111827';
@@ -390,9 +471,27 @@ export class ReportsPageComponent implements OnInit {
       ctx.textAlign = 'right';
       ctx.fillText(entry.horasExtra.toFixed(2), hoursX, y + 30);
       ctx.textAlign = 'left';
+
+      if (includeObs) {
+        const obs = (entry.observaciones ?? '').trim();
+        ctx.fillStyle = '#111827';
+        ctx.font = '500 15px Montserrat, sans-serif';
+        this.drawWrappedText(ctx, `Observaciones: ${obs || '-'}`, dateX, y + 54, tableWidth - 28, 16);
+
+        // Separador
+        const sepY = y + rowHeight - 10;
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(tableX + 10, sepY);
+        ctx.lineTo(tableX + tableWidth - 10, sepY);
+        ctx.stroke();
+      }
+
+      cursorY += rowHeight;
     });
 
-    const summaryTop = tableTop + 42 + rowHeight * rows + summarySpacingTop;
+    const summaryTop = tableTop + tableHeaderHeight + tableBodyHeight + summarySpacingTop;
     ctx.fillStyle = '#6b7280';
     ctx.fillRect(tableX, summaryTop, tableWidth, summaryTitleHeight);
     ctx.fillStyle = '#ffffff';
@@ -409,11 +508,11 @@ export class ReportsPageComponent implements OnInit {
     ];
 
     summaryRows.forEach((row, index) => {
-      const y = summaryTop + summaryTitleHeight + rowHeight * index;
+      const y = summaryTop + summaryTitleHeight + summaryRowHeight * index;
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(tableX, y, tableWidth, rowHeight);
+      ctx.fillRect(tableX, y, tableWidth, summaryRowHeight);
       ctx.strokeStyle = '#e5e7eb';
-      ctx.strokeRect(tableX, y, tableWidth, rowHeight);
+      ctx.strokeRect(tableX, y, tableWidth, summaryRowHeight);
       ctx.fillStyle = '#111827';
       ctx.font = '500 16px Montserrat, sans-serif';
       ctx.fillText(row[0], dateX, y + 30);
@@ -532,6 +631,68 @@ export class ReportsPageComponent implements OnInit {
       month: '2-digit',
       year: 'numeric'
     }).format(dt);
+  }
+
+  private drawTextEllipsis(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number
+  ): void {
+    if (!text) return;
+    const clean = text.replace(/\s+/g, ' ').trim();
+    if (!clean) return;
+    if (ctx.measureText(clean).width <= maxWidth) {
+      ctx.fillText(clean, x, y);
+      return;
+    }
+    const ellipsis = '…';
+    let lo = 0;
+    let hi = clean.length;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      const candidate = clean.slice(0, mid) + ellipsis;
+      if (ctx.measureText(candidate).width <= maxWidth) lo = mid + 1;
+      else hi = mid;
+    }
+    const finalText = clean.slice(0, Math.max(0, lo - 1)) + ellipsis;
+    ctx.fillText(finalText, x, y);
+  }
+
+  private wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const clean = text.replace(/\s+/g, ' ').trim();
+    if (!clean) return [];
+    if (ctx.measureText(clean).width <= maxWidth) return [clean];
+    const words = clean.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const w of words) {
+      const candidate = current ? `${current} ${w}` : w;
+      if (ctx.measureText(candidate).width <= maxWidth) {
+        current = candidate;
+        continue;
+      }
+      if (current) lines.push(current);
+      current = w;
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  private drawWrappedText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    lineHeight: number
+  ): void {
+    const lines = this.wrapTextLines(ctx, text, maxWidth);
+    if (!lines.length) return;
+    lines.forEach((line, i) => {
+      ctx.fillText(line, x, y + i * lineHeight);
+    });
   }
 
   private getReportLabelHuman(): string {

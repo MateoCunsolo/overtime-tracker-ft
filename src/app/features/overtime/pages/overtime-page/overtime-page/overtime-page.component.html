@@ -21,14 +21,6 @@
 
     <form [formGroup]="form" (ngSubmit)="saveEntry()">
       @if (!isManualMode && !editingEntryId) {
-        <p class="shift-hint">
-          <strong>Modo rápido:</strong> elegí una opción y se completa el horario automáticamente.
-          <br />
-          {{ weekdayShiftHint }} Sábados, domingos y feriados: otras reglas.
-        </p>
-        <p class="shift-hint" style="margin-top: -0.35rem">
-          <strong>¿Qué vas a cargar?</strong> Horas extras de hoy, según tu turno.
-        </p>
         <div class="quick-presets">
           @for (preset of quickPresets; track preset.label) {
             <button
@@ -44,16 +36,16 @@
       }
 
       @if (isManualMode || editingEntryId) {
-        <p class="shift-hint">
-          <strong>Modo manual:</strong> completá la fecha y el horario.
-          <br />
-          {{ weekdayShiftHint }} Marcá feriado si corresponde.
-        </p>
 
         <div class="field">
           <label for="fecha">Fecha del registro</label>
           <input id="fecha" type="date" formControlName="fecha" />
-          <small class="field-help">Ej: el día que hiciste las horas extras.</small>
+          @if (form.controls.esFeriadoNacional.value) {
+            <span class="holiday-tag" role="note">
+              <span class="holiday-tag-title">FERIADO</span>
+              <span class="holiday-tag-name">{{ feriadoNombre ?? 'Nacional' }}</span>
+            </span>
+          }
         </div>
 
         @if (editingEntryId || !manualFastPresets.length) {
@@ -74,12 +66,8 @@
 
         @if (!editingEntryId && manualFastPresets.length) {
           <div class="form-divider"></div>
-          <p class="shift-hint">
-            <strong>Atajos según tu fecha/turno:</strong> elegí una opción y se completa el horario.
-            <br />
-            {{ manualFastPresetsHint }}
-          </p>
-          <div class="quick-presets">
+          <div class="field">
+            <label>Seleccioná el horario</label>
             @for (preset of manualFastPresets; track preset.label) {
               <button
                 class="btn-preset"
@@ -93,21 +81,13 @@
           </div>
         }
 
-        <div class="form-divider"></div>
-        <div class="check-row">
-          <label class="checkbox">
-            <input type="checkbox" formControlName="esFeriadoNacional" />
-            Es feriado nacional (+65%)
-          </label>
-          <small class="field-help">Si es feriado, el cálculo cambia automáticamente.</small>
-        </div>
       }
 
       <div class="form-divider"></div>
       <div class="field">
         <label for="obs">Observaciones (opcional)</label>
         <textarea id="obs" formControlName="observaciones" rows="3"></textarea>
-        <small class="field-help">Ej: “Relevos”, “Parada de planta”, “Guardia”, etc.</small>
+        <small class="field-help">Ej: “Remplazo de Maquinista”</small>
       </div>
 
       @if (errorMessage) {
